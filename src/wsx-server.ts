@@ -16,6 +16,13 @@ interface WSXResponse {
   target: string;
   html: string;
   swap?: string;
+  oob?: WSXOOBUpdate[];
+}
+
+interface WSXOOBUpdate {
+  target: string;
+  html: string;
+  swap?: string;
 }
 
 interface WSXConnection {
@@ -221,4 +228,4 @@ class WSXServer {
   }
 }
 
-export { WSXServer, WSXRequest, WSXResponse, WSXConnection, WSXHandler };
+export { WSXServer, WSXRequest, WSXResponse, WSXConnection, WSXHandler, WSXOOBUpdate };

@@ -110,19 +110,50 @@ class WSX {
   }
 
   handleMessage(message) {
-    const targetElement = document.querySelector(message.target);
+    // Handle main response
+    this.processSwapUpdate({
+      target: message.target,
+      html: message.html,
+      swap: message.swap || 'innerHTML'
+    }, message);
+
+    // Handle out-of-band swaps
+    if (message.oob && Array.isArray(message.oob)) {
+      message.oob.forEach(oobUpdate => {
+        this.log('Processing OOB update:', oobUpdate);
+        this.processSwapUpdate(oobUpdate, message, true);
+      });
+    }
+
+    // Clean up pending request
+    this.pendingRequests.delete(message.id);
+  }
+
+  /**
+   * Process a single swap update (main or OOB)
+   * @param {Object} update - Update object with target, html, swap
+   * @param {Object} message - Original message for events
+   * @param {boolean} isOOB - Whether this is an out-of-band update
+   */
+  processSwapUpdate(update, message, isOOB = false) {
+    const targetElement = document.querySelector(update.target);
     
     if (!targetElement) {
-      this.log(`Target element not found: ${message.target}`);
+      this.log(`Target element not found: ${update.target}${isOOB ? ' (OOB)' : ''}`);
       return;
     }
 
-    const swap = message.swap || 'innerHTML';
+    const swap = update.swap || 'innerHTML';
     const swapSpec = this.parseSwapSpec(swap);
     
     // Trigger before swap event
     const beforeEvent = new CustomEvent('wsx:beforeSwap', {
-      detail: { message, element: targetElement }
+      detail: { 
+        message, 
+        element: targetElement, 
+        update,
+        isOOB 
+      }
     });
     targetElement.dispatchEvent(beforeEvent);
 
@@ -131,24 +162,28 @@ class WSX {
     
     setTimeout(() => {
       // Perform the swap
-      this.performSwap(targetElement, message.html, swapSpec);
+      this.performSwap(targetElement, update.html, swapSpec);
 
       // Apply settle delay and trigger after swap event
       const settleDelay = swapSpec.settle || 20;
       setTimeout(() => {
         const afterEvent = new CustomEvent('wsx:afterSwap', {
-          detail: { message, element: targetElement }
+          detail: { 
+            message, 
+            element: targetElement, 
+            update,
+            isOOB 
+          }
         });
         targetElement.dispatchEvent(afterEvent);
 
-        // Handle show/scroll modifiers
-        this.handleShowScroll(targetElement, swapSpec);
+        // Handle show/scroll modifiers (only for main updates, not OOB)
+        if (!isOOB) {
+          this.handleShowScroll(targetElement, swapSpec);
+        }
       }, settleDelay);
 
     }, delay);
-
-    // Clean up pending request
-    this.pendingRequests.delete(message.id);
   }
 
   performSwap(element, html, swapSpec) {

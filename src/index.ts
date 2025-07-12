@@ -9,6 +9,9 @@ export function createWSXServer() {
 const wsx = createWSXServer();
 const app = wsx.getApp();
 
+// Global action counter for OOB demos
+let actionCounter = 0;
+
 // Serve static files
 app.get("/", (c) => {
   return c.html(`
@@ -21,10 +24,23 @@ app.get("/", (c) => {
       </head>
       <body class="bg-gray-100 p-8">
         <div wx-config='{"url": "ws://localhost:8787/ws", "debug": true}'>
-          <h1 class="text-2xl font-bold mb-4">WSX Example</h1>
+          <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-bold">WSX Example</h1>
+            
+            <!-- Counter that gets updated via OOB -->
+            <div id="counter" class="bg-blue-100 px-3 py-1 rounded">
+              <span class="text-sm text-blue-800">Actions: 0</span>
+            </div>
+          </div>
+          
+          <!-- Notification area that gets updated via OOB -->
+          <div id="notifications" class="mb-4">
+            <!-- OOB notifications appear here -->
+          </div>
           
           <div id="content" class="mb-4 p-4 bg-white rounded min-h-[100px]">
             <p>Click the buttons below to test WSX with different swap modifiers</p>
+            <p class="text-sm text-gray-600 mt-2">Notice how the counter and notifications update automatically!</p>
           </div>
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -53,6 +69,17 @@ app.get("/", (c) => {
               class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
             >
               Append Content
+            </button>
+          </div>
+          
+          <div class="mb-4">
+            <button 
+              wx-send="oob-demo"
+              wx-target="#content" 
+              wx-trigger="click"
+              class="bg-gradient-to-r from-pink-500 to-purple-500 text-white px-6 py-3 rounded-lg hover:from-pink-600 hover:to-purple-600 text-lg font-semibold"
+            >
+              🚀 Out-of-Band Demo (Updates Multiple Areas)
             </button>
           </div>
           
@@ -157,11 +184,41 @@ app.get("/", (c) => {
               </div>
             </div>
           </div>
+          
+          <!-- Sidebar for recent actions (also updated via OOB) -->
+          <div class="mt-8">
+            <h3 class="text-lg font-semibold mb-2">Recent Actions</h3>
+            <div id="recent-actions" class="bg-gray-50 p-4 rounded border max-h-48 overflow-y-auto">
+              <p class="text-gray-500 text-sm">Actions will appear here...</p>
+            </div>
+          </div>
         </div>
       </body>
       </html>
     `);
 });
+
+// Helper function to create OOB updates
+function createOOBUpdates() {
+  actionCounter++;
+  
+  return [
+    {
+      target: "#counter",
+      html: `<span class="text-sm text-blue-800">Actions: ${actionCounter}</span>`,
+      swap: "innerHTML"
+    },
+    {
+      target: "#notifications",
+      html: `
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-2">
+          <span class="block sm:inline">Action ${actionCounter} completed at ${new Date().toLocaleTimeString()}</span>
+        </div>
+      `,
+      swap: "afterbegin"
+    }
+  ];
+}
 
 // Handle WSX triggers
 wsx.on("click", async (request, connection) => {
@@ -174,7 +231,8 @@ wsx.on("click", async (request, connection) => {
           <p>Connection: ${connection.id}</p>
         </div>
       `,
-    swap: "innerHTML",
+    swap: "innerHTML swap:300ms settle:100ms show:top",
+    oob: createOOBUpdates()
   };
 });
 
@@ -184,12 +242,13 @@ wsx.on("submit", async (request, connection) => {
     id: request.id,
     target: request.target,
     html: `
-        <div class="text-blue-600">
+        <div class="text-blue-600 p-4 border-l-4 border-blue-400 bg-blue-50">
           <p><strong>Form submitted:</strong> ${message}</p>
           <p>Time: ${new Date().toLocaleTimeString()}</p>
         </div>
       `,
-    swap: "innerHTML",
+    swap: "innerHTML swap:500ms settle:200ms scroll:bottom",
+    oob: createOOBUpdates()
   };
 });
 
@@ -219,6 +278,43 @@ wsx.on("input", async (request, connection) => {
         </div>
       `,
     swap: "innerHTML",
+  };
+});
+
+// Special OOB demo handler
+wsx.on("oob-demo", async (request, connection) => {
+  const colors = ['red', 'blue', 'green', 'purple', 'yellow', 'pink'];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `
+      <div class="text-${randomColor}-600 p-6 border-2 border-${randomColor}-300 bg-${randomColor}-50 rounded-lg">
+        <h3 class="text-xl font-bold mb-2">🎉 Out-of-Band Demo!</h3>
+        <p>This updates the <strong>main content area</strong>, but also:</p>
+        <ul class="list-disc list-inside mt-2 space-y-1">
+          <li>✅ Updates the counter in the header</li>
+          <li>✅ Adds a notification at the top</li>
+          <li>✅ Updates the recent actions sidebar</li>
+        </ul>
+        <p class="mt-3 text-sm">All from a single WebSocket response!</p>
+        <p class="text-xs text-gray-600">Time: ${new Date().toLocaleTimeString()}</p>
+      </div>
+    `,
+    swap: "innerHTML swap:200ms settle:150ms",
+    oob: [
+      ...createOOBUpdates(),
+      {
+        target: "#recent-actions",
+        html: `
+          <div class="text-xs text-gray-600 p-2 border-l-2 border-${randomColor}-300 bg-${randomColor}-25 mb-1">
+            <strong>OOB Demo:</strong> Updated at ${new Date().toLocaleTimeString()}
+          </div>
+        `,
+        swap: "afterbegin"
+      }
+    ]
   };
 });
 
