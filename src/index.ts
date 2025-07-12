@@ -76,16 +76,86 @@ app.get("/", (c) => {
             </button>
           </form>
           
-          <div class="mt-4">
-            <input 
-              type="text" 
-              name="search" 
-              placeholder="Real-time search"
-              wx-send 
-              wx-target="#content" 
-              wx-trigger="input"
-              class="border px-3 py-2 rounded w-full"
-            />
+          <div class="mt-4 space-y-4">
+            <h3 class="text-lg font-semibold">Advanced Trigger Examples:</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Throttled Search (500ms):</label>
+                <input 
+                  type="text" 
+                  name="search" 
+                  placeholder="Throttled real-time search"
+                  wx-send="throttled-search"
+                  wx-target="#content" 
+                  wx-trigger="input throttle:500ms"
+                  class="border px-3 py-2 rounded w-full"
+                />
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium mb-1">Debounced Search (queue):</label>
+                <input 
+                  type="text" 
+                  name="search" 
+                  placeholder="Debounced search"
+                  wx-send="debounced-search"
+                  wx-target="#content" 
+                  wx-trigger="input queue"
+                  class="border px-3 py-2 rounded w-full"
+                />
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium mb-1">Enter Key Only:</label>
+                <input 
+                  type="text" 
+                  name="search" 
+                  placeholder="Press Enter to search"
+                  wx-send="enter-search"
+                  wx-target="#content" 
+                  wx-trigger="keyup[Enter]"
+                  class="border px-3 py-2 rounded w-full"
+                />
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium mb-1">Changed Values Only:</label>
+                <input 
+                  type="text" 
+                  name="search" 
+                  placeholder="Only when value changes"
+                  wx-send="changed-search"
+                  wx-target="#content" 
+                  wx-trigger="blur changed"
+                  class="border px-3 py-2 rounded w-full"
+                />
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium mb-1">Delayed Action (1s):</label>
+                <button 
+                  wx-send="delayed-action"
+                  wx-target="#content" 
+                  wx-trigger="click delay:1s"
+                  class="bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600 w-full"
+                >
+                  Delayed Button (1s)
+                </button>
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium mb-1">Once Only:</label>
+                <button 
+                  wx-send="once-action"
+                  wx-target="#content" 
+                  wx-trigger="click once"
+                  class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 w-full"
+                >
+                  Click Once Only
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </body>
@@ -148,6 +218,131 @@ wsx.on("input", async (request, connection) => {
           }
         </div>
       `,
+    swap: "innerHTML",
+  };
+});
+
+// Advanced trigger handlers
+wsx.on("throttled-search", async (request, connection) => {
+  const search = request.data?.search || "";
+  const results = search
+    ? [
+        `Throttled result 1 for "${search}"`,
+        `Throttled result 2 for "${search}"`,
+        `Throttled result 3 for "${search}"`,
+      ]
+    : [];
+
+  return {
+    id: request.id,
+    target: request.target,
+    html: `
+      <div class="text-blue-600 p-4 border-l-4 border-blue-400 bg-blue-50">
+        <p><strong>Throttled Search (max 1 per 500ms):</strong> ${search}</p>
+        <p>Time: ${new Date().toLocaleTimeString()}</p>
+        ${
+          results.length > 0
+            ? `<ul class="list-disc list-inside mt-2">
+            ${results.map((result) => `<li>${result}</li>`).join("")}
+          </ul>`
+            : '<p class="text-gray-500">Start typing to see throttled results...</p>'
+        }
+      </div>
+    `,
+    swap: "innerHTML",
+  };
+});
+
+wsx.on("debounced-search", async (request, connection) => {
+  const search = request.data?.search || "";
+  const results = search
+    ? [
+        `Debounced result 1 for "${search}"`,
+        `Debounced result 2 for "${search}"`,
+      ]
+    : [];
+
+  return {
+    id: request.id,
+    target: request.target,
+    html: `
+      <div class="text-green-600 p-4 border-l-4 border-green-400 bg-green-50">
+        <p><strong>Debounced Search (300ms delay):</strong> ${search}</p>
+        <p>Time: ${new Date().toLocaleTimeString()}</p>
+        ${
+          results.length > 0
+            ? `<ul class="list-disc list-inside mt-2">
+            ${results.map((result) => `<li>${result}</li>`).join("")}
+          </ul>`
+            : '<p class="text-gray-500">Start typing to see debounced results...</p>'
+        }
+      </div>
+    `,
+    swap: "innerHTML",
+  };
+});
+
+wsx.on("enter-search", async (request, connection) => {
+  const search = request.data?.search || "";
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `
+      <div class="text-purple-600 p-4 border-l-4 border-purple-400 bg-purple-50">
+        <p><strong>Enter Key Search:</strong> ${search}</p>
+        <p>Triggered only when Enter is pressed!</p>
+        <p>Time: ${new Date().toLocaleTimeString()}</p>
+      </div>
+    `,
+    swap: "innerHTML",
+  };
+});
+
+wsx.on("changed-search", async (request, connection) => {
+  const search = request.data?.search || "";
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `
+      <div class="text-yellow-600 p-4 border-l-4 border-yellow-400 bg-yellow-50">
+        <p><strong>Changed Value Search:</strong> ${search}</p>
+        <p>Only triggers when value actually changes and field loses focus</p>
+        <p>Time: ${new Date().toLocaleTimeString()}</p>
+      </div>
+    `,
+    swap: "innerHTML",
+  };
+});
+
+wsx.on("delayed-action", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `
+      <div class="text-orange-600 p-4 border-l-4 border-orange-400 bg-orange-50">
+        <p><strong>Delayed Action Executed!</strong></p>
+        <p>This action was delayed by 1 second after the click</p>
+        <p>Time: ${new Date().toLocaleTimeString()}</p>
+      </div>
+    `,
+    swap: "innerHTML",
+  };
+});
+
+wsx.on("once-action", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `
+      <div class="text-red-600 p-4 border-l-4 border-red-400 bg-red-50">
+        <p><strong>Once Action Executed!</strong></p>
+        <p>This button can only be clicked once</p>
+        <p>Try clicking it again - it won't work!</p>
+        <p>Time: ${new Date().toLocaleTimeString()}</p>
+      </div>
+    `,
     swap: "innerHTML",
   };
 });

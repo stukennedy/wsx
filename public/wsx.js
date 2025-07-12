@@ -40,6 +40,8 @@ class WSX {
     this.isConnected = false;
     this.pendingRequests = new Map();
     this.requestCounter = 0;
+    this.throttleTimers = new Map();
+    this.debounceTimers = new Map();
     
     this.config = {
       reconnectInterval: 3000,
@@ -301,48 +303,236 @@ class WSX {
   }
 
   setupEventListeners() {
-    // Handle clicks
-    document.addEventListener('click', (e) => {
-      const element = e.target;
-      if (element.hasAttribute('wx-send')) {
-        e.preventDefault();
-        this.handleTrigger(element, 'click');
-      }
+    // Common events to listen for
+    const events = ['click', 'submit', 'input', 'change', 'keyup', 'keydown', 'focus', 'blur', 'load', 'scroll', 'mouseover', 'mouseout'];
+    
+    events.forEach(eventType => {
+      document.addEventListener(eventType, (e) => {
+        this.handleEvent(e, eventType);
+      });
     });
 
-    // Handle form submissions
-    document.addEventListener('submit', (e) => {
-      const form = e.target;
-      if (form.hasAttribute('wx-send')) {
-        e.preventDefault();
-        this.handleTrigger(form, 'submit');
-      }
-    });
+    // Handle intersect events (for lazy loading)
+    if ('IntersectionObserver' in window) {
+      this.setupIntersectionObserver();
+    }
+  }
 
-    // Handle input changes
-    document.addEventListener('input', (e) => {
-      const element = e.target;
-      if (element.hasAttribute('wx-send') && element.hasAttribute('wx-trigger')) {
-        const trigger = element.getAttribute('wx-trigger');
-        if (trigger.includes('input') || trigger.includes('change')) {
-          this.handleTrigger(element, 'input');
+  handleEvent(e, eventType) {
+    let element = e.target;
+    
+    // Walk up the DOM tree to find elements with wx-send
+    while (element && element !== document) {
+      if (element.hasAttribute && element.hasAttribute('wx-send')) {
+        const triggerSpec = element.getAttribute('wx-trigger') || eventType;
+        const triggers = this.parseTriggerSpec(triggerSpec);
+        
+        for (const trigger of triggers) {
+          if (this.shouldTrigger(trigger, e, eventType, element)) {
+            if (eventType === 'submit') {
+              e.preventDefault();
+            }
+            
+            this.processTrigger(element, trigger, e);
+            break; // Only process the first matching trigger
+          }
         }
       }
-    });
+      element = element.parentElement;
+    }
+  }
 
-    // Handle custom triggers
-    document.addEventListener('keyup', (e) => {
-      const element = e.target;
-      if (element.hasAttribute('wx-send') && element.hasAttribute('wx-trigger')) {
-        const trigger = element.getAttribute('wx-trigger');
-        if (trigger.includes('keyup')) {
-          this.handleTrigger(element, 'keyup');
+  /**
+   * Parse trigger specification like "click, keyup[ctrlKey] delay:500ms, change throttle:1s"
+   * @param {string} triggerSpec - Trigger specification string
+   * @returns {Array} Array of parsed trigger objects
+   */
+  parseTriggerSpec(triggerSpec) {
+    if (!triggerSpec) return [{ event: 'click' }];
+    
+    return triggerSpec.split(',').map(spec => {
+      const trigger = { event: 'click', modifiers: {} };
+      const parts = spec.trim().split(/\s+/);
+      
+      // Parse event name and conditions
+      const eventPart = parts[0];
+      const conditionMatch = eventPart.match(/^(\w+)(?:\[([^\]]+)\])?$/);
+      
+      if (conditionMatch) {
+        trigger.event = conditionMatch[1];
+        if (conditionMatch[2]) {
+          trigger.condition = conditionMatch[2];
         }
       }
+      
+      // Parse modifiers
+      parts.slice(1).forEach(part => {
+        const [key, value] = part.split(':');
+        switch (key) {
+          case 'once':
+            trigger.modifiers.once = true;
+            break;
+          case 'changed':
+            trigger.modifiers.changed = true;
+            break;
+          case 'delay':
+            trigger.modifiers.delay = this.parseTime(value);
+            break;
+          case 'throttle':
+            trigger.modifiers.throttle = this.parseTime(value);
+            break;
+          case 'from':
+            trigger.modifiers.from = value;
+            break;
+          case 'target':
+            trigger.modifiers.target = value;
+            break;
+          case 'consume':
+            trigger.modifiers.consume = true;
+            break;
+          case 'queue':
+            trigger.modifiers.queue = value || 'last';
+            break;
+        }
+      });
+      
+      return trigger;
     });
   }
 
-  handleTrigger(element, eventType) {
+  /**
+   * Check if trigger should fire based on conditions
+   */
+  shouldTrigger(trigger, event, eventType, element) {
+    // Check if event type matches
+    if (trigger.event !== eventType) return false;
+    
+    // Check condition (e.g., ctrlKey, shiftKey, etc.)
+    if (trigger.condition) {
+      try {
+        // Simple condition evaluation for common cases
+        if (trigger.condition.includes('ctrlKey') && !event.ctrlKey) return false;
+        if (trigger.condition.includes('shiftKey') && !event.shiftKey) return false;
+        if (trigger.condition.includes('altKey') && !event.altKey) return false;
+        if (trigger.condition.includes('metaKey') && !event.metaKey) return false;
+        
+        // Handle key conditions like "keyup[Enter]"
+        const keyMatch = trigger.condition.match(/^(\w+)$/);
+        if (keyMatch && event.key !== keyMatch[1]) return false;
+      } catch (e) {
+        this.log('Error evaluating trigger condition:', e);
+        return false;
+      }
+    }
+    
+    // Check 'from' modifier (event delegation)
+    if (trigger.modifiers.from) {
+      const fromElement = document.querySelector(trigger.modifiers.from);
+      if (!fromElement || !fromElement.contains(event.target)) return false;
+    }
+    
+    // Check 'target' modifier
+    if (trigger.modifiers.target) {
+      if (!event.target.matches(trigger.modifiers.target)) return false;
+    }
+    
+    // Check 'changed' modifier for form inputs
+    if (trigger.modifiers.changed && element.tagName) {
+      const tagName = element.tagName.toLowerCase();
+      if (['input', 'textarea', 'select'].includes(tagName)) {
+        const currentValue = element.value;
+        const lastValue = element.dataset.wsxLastValue;
+        if (currentValue === lastValue) return false;
+        element.dataset.wsxLastValue = currentValue;
+      }
+    }
+    
+    return true;
+  }
+
+  /**
+   * Process trigger with modifiers like delay, throttle, etc.
+   */
+  processTrigger(element, trigger, event) {
+    const elementId = element.id || `wsx_${Math.random().toString(36).substr(2, 9)}`;
+    if (!element.id) element.id = elementId;
+    
+    // Handle 'once' modifier
+    if (trigger.modifiers.once) {
+      if (element.dataset.wsxTriggered) return;
+      element.dataset.wsxTriggered = 'true';
+    }
+    
+    // Handle 'consume' modifier
+    if (trigger.modifiers.consume) {
+      event.stopPropagation();
+    }
+    
+    const executeRequest = () => {
+      this.handleTrigger(element, trigger.event, event);
+    };
+    
+    // Handle 'delay' modifier
+    if (trigger.modifiers.delay) {
+      setTimeout(executeRequest, trigger.modifiers.delay);
+      return;
+    }
+    
+    // Handle 'throttle' modifier
+    if (trigger.modifiers.throttle) {
+      const throttleKey = `${elementId}_${trigger.event}`;
+      if (this.throttleTimers.has(throttleKey)) return;
+      
+      executeRequest();
+      this.throttleTimers.set(throttleKey, setTimeout(() => {
+        this.throttleTimers.delete(throttleKey);
+      }, trigger.modifiers.throttle));
+      return;
+    }
+    
+    // Handle 'queue' modifier with debouncing
+    if (trigger.modifiers.queue) {
+      const debounceKey = `${elementId}_${trigger.event}`;
+      
+      if (this.debounceTimers.has(debounceKey)) {
+        clearTimeout(this.debounceTimers.get(debounceKey));
+      }
+      
+      const timer = setTimeout(() => {
+        this.debounceTimers.delete(debounceKey);
+        executeRequest();
+      }, 300); // Default debounce time
+      
+      this.debounceTimers.set(debounceKey, timer);
+      return;
+    }
+    
+    // Execute immediately
+    executeRequest();
+  }
+
+  /**
+   * Setup intersection observer for 'intersect' triggers
+   */
+  setupIntersectionObserver() {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const element = entry.target;
+          this.handleTrigger(element, 'intersect');
+        }
+      });
+    });
+    
+    // Observe elements with intersect triggers
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('[wx-trigger*="intersect"]').forEach(el => {
+        observer.observe(el);
+      });
+    });
+  }
+
+  handleTrigger(element, eventType, event) {
     if (!this.isConnected) {
       this.log('Not connected to server');
       return;
