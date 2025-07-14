@@ -1,0 +1,772 @@
+---
+title: "Type Definitions"
+description: "TypeScript type definitions for WSX"
+---
+
+# Type Definitions
+
+WSX provides comprehensive TypeScript type definitions for type-safe development.
+
+## Core Types
+
+### WSXRequest
+
+Represents a request from the client to the server.
+
+```typescript
+interface WSXRequest {
+  id: string;                    // Unique request identifier
+  handler: string;               // Handler name to invoke
+  target: string;                // CSS selector for target element
+  trigger?: string;              // Trigger event information
+  data?: Record<string, any>;    // Request data payload
+  swap?: string;                 // Content swap specification
+  headers?: Record<string, string>; // Request headers
+  timestamp?: number;            // Request timestamp
+}
+```
+
+#### Example
+
+```typescript
+const request: WSXRequest = {
+  id: 'req-123',
+  handler: 'get-user',
+  target: '#user-info',
+  data: { userId: 123 },
+  swap: 'innerHTML'
+};
+```
+
+### WSXResponse
+
+Represents a response from the server to the client.
+
+```typescript
+interface WSXResponse {
+  id: string;                    // Request ID this response belongs to
+  target: string;                // CSS selector for target element
+  html: string;                  // HTML content to swap
+  swap?: string;                 // How to swap the content
+  oob?: WSXOOBUpdate[];         // Out-of-band updates
+  headers?: Record<string, string>; // Response headers
+  error?: string;                // Error message if request failed
+  timestamp?: number;            // Response timestamp
+}
+```
+
+#### Example
+
+```typescript
+const response: WSXResponse = {
+  id: 'req-123',
+  target: '#user-info',
+  html: '<div>John Doe</div>',
+  swap: 'innerHTML',
+  oob: [
+    {
+      target: '#notification',
+      html: '<div>User loaded</div>',
+      swap: 'beforeend'
+    }
+  ]
+};
+```
+
+### WSXOOBUpdate
+
+Represents an out-of-band update for multiple element updates.
+
+```typescript
+interface WSXOOBUpdate {
+  target: string;                // CSS selector for target element
+  html: string;                  // HTML content to swap
+  swap?: string;                 // How to swap the content
+  delay?: number;                // Delay before applying update (ms)
+}
+```
+
+#### Example
+
+```typescript
+const oobUpdate: WSXOOBUpdate = {
+  target: '#sidebar',
+  html: '<div>Updated sidebar</div>',
+  swap: 'innerHTML',
+  delay: 1000
+};
+```
+
+### WSXConnection
+
+Represents a WebSocket connection on the server side.
+
+```typescript
+interface WSXConnection {
+  id: string;                    // Unique connection identifier
+  sessionData?: Record<string, any>; // Session storage
+  send(data: string): void;      // Send data to client
+  close(): void;                 // Close connection
+  
+  // Optional properties
+  request?: any;                 // Original HTTP request
+  ip?: string;                   // Client IP address
+  headers?: Record<string, string>; // Connection headers
+  authenticated?: boolean;       // Authentication status
+  lastActivity?: number;         // Last activity timestamp
+}
+```
+
+#### Example
+
+```typescript
+function handleRequest(request: WSXRequest, connection: WSXConnection): WSXResponse {
+  // Store data in session
+  connection.sessionData = {
+    ...connection.sessionData,
+    lastRequest: request.handler
+  };
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Hello from ${connection.id}</div>`
+  };
+}
+```
+
+## Handler Types
+
+### WSXHandler
+
+Type definition for request handlers.
+
+```typescript
+type WSXHandler = (
+  request: WSXRequest,
+  connection: WSXConnection
+) => Promise<WSXResponse | WSXResponse[]> | WSXResponse | WSXResponse[];
+```
+
+#### Example
+
+```typescript
+import { html } from '@wsx/core';
+
+const getUserHandler: WSXHandler = async (request, connection) => {
+  const { userId } = request.data;
+  const user = await getUserById(userId);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: html`<div>${user.name}</div>`
+  };
+};
+```
+
+### WSXErrorHandler
+
+Type definition for error handlers.
+
+```typescript
+type WSXErrorHandler = (
+  error: Error,
+  request?: WSXRequest,
+  connection?: WSXConnection
+) => WSXResponse | void;
+```
+
+#### Example
+
+```typescript
+const errorHandler: WSXErrorHandler = (error, request, connection) => {
+  console.error('Handler error:', error);
+  
+  if (request) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">An error occurred</div>`,
+      error: error.message
+    };
+  }
+};
+```
+
+### WSXMiddleware
+
+Type definition for middleware functions.
+
+```typescript
+type WSXMiddleware = (
+  request: WSXRequest,
+  connection: WSXConnection,
+  next: () => Promise<WSXResponse | WSXResponse[]>
+) => Promise<WSXResponse | WSXResponse[]>;
+```
+
+#### Example
+
+```typescript
+const authMiddleware: WSXMiddleware = async (request, connection, next) => {
+  const user = connection.sessionData?.user;
+  
+  if (!user) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Authentication required</div>`
+    };
+  }
+  
+  return await next();
+};
+```
+
+## Client Types
+
+### WSXClientOptions
+
+Configuration options for the WSX client.
+
+```typescript
+interface WSXClientOptions {
+  url: string;                   // WebSocket server URL
+  autoConnect?: boolean;         // Auto-connect on instantiation
+  reconnect?: boolean;           // Auto-reconnect on connection loss
+  reconnectInterval?: number;    // Reconnection interval in ms
+  maxReconnectAttempts?: number; // Maximum reconnection attempts
+  debug?: boolean;               // Enable debug logging
+  timeout?: number;              // Default request timeout
+  headers?: Record<string, string>; // Default headers
+  protocols?: string[];          // WebSocket protocols
+}
+```
+
+#### Example
+
+```typescript
+const options: WSXClientOptions = {
+  url: 'ws://localhost:3000/ws',
+  autoConnect: true,
+  reconnect: true,
+  reconnectInterval: 3000,
+  maxReconnectAttempts: 10,
+  debug: false,
+  timeout: 30000
+};
+```
+
+### WSXSendOptions
+
+Options for sending requests.
+
+```typescript
+interface WSXSendOptions {
+  swap?: string;                 // Content swap type
+  timeout?: number;              // Request timeout
+  headers?: Record<string, string>; // Request headers
+  confirm?: string;              // Confirmation message
+  indicator?: string;            // Loading indicator selector
+  disable?: boolean;             // Disable element during request
+}
+```
+
+#### Example
+
+```typescript
+const sendOptions: WSXSendOptions = {
+  swap: 'beforeend',
+  timeout: 10000,
+  confirm: 'Are you sure?',
+  indicator: '#loading',
+  disable: true
+};
+```
+
+### WSXEventMap
+
+Type map for WSX client events.
+
+```typescript
+interface WSXEventMap {
+  'connect': () => void;
+  'disconnect': () => void;
+  'message': (message: any) => void;
+  'error': (error: Error) => void;
+  'reconnect': () => void;
+  'reconnected': () => void;
+  'request': (request: WSXRequest) => void;
+  'response': (response: WSXResponse) => void;
+}
+```
+
+#### Example
+
+```typescript
+wsx.on('connect', () => {
+  console.log('Connected');
+});
+
+wsx.on('error', (error: Error) => {
+  console.error('Error:', error);
+});
+```
+
+## Server Types
+
+### WSXServerOptions
+
+Configuration options for the WSX server.
+
+```typescript
+interface WSXServerOptions {
+  path?: string;                 // WebSocket path
+  maxConnections?: number;       // Maximum concurrent connections
+  maxMessageSize?: number;       // Maximum message size in bytes
+  pingInterval?: number;         // Ping interval in ms
+  pongTimeout?: number;          // Pong timeout in ms
+  compression?: boolean;         // Enable compression
+  cors?: {
+    origin?: string | string[];
+    credentials?: boolean;
+    methods?: string[];
+    headers?: string[];
+  };
+}
+```
+
+#### Example
+
+```typescript
+const serverOptions: WSXServerOptions = {
+  path: '/ws',
+  maxConnections: 1000,
+  maxMessageSize: 1024 * 1024, // 1MB
+  pingInterval: 30000,
+  pongTimeout: 10000,
+  compression: true,
+  cors: {
+    origin: ['http://localhost:3000'],
+    credentials: true
+  }
+};
+```
+
+### WSXAdapter
+
+Interface for server adapters.
+
+```typescript
+interface WSXAdapter {
+  setupWebSocket(path: string, onMessage: MessageHandler): void;
+  getApp(): any;
+  onConnection?(connection: WSXConnection): void;
+  onDisconnection?(connection: WSXConnection): void;
+  onError?(error: Error, connection?: WSXConnection): void;
+}
+```
+
+#### Example
+
+```typescript
+class CustomAdapter implements WSXAdapter {
+  setupWebSocket(path: string, onMessage: MessageHandler): void {
+    // Implementation
+  }
+  
+  getApp(): any {
+    return this.app;
+  }
+  
+  onConnection(connection: WSXConnection): void {
+    console.log(`Connection ${connection.id} established`);
+  }
+}
+```
+
+### MessageHandler
+
+Type for message handling functions.
+
+```typescript
+type MessageHandler = (data: string, connection: WSXConnection) => void;
+```
+
+## Utility Types
+
+### WSXHtmlHelper
+
+Type for the HTML template helper function.
+
+```typescript
+type WSXHtmlHelper = (strings: TemplateStringsArray, ...values: any[]) => string;
+```
+
+#### Example
+
+```typescript
+import { html } from '@wsx/core';
+
+// The html helper provides better TypeScript support
+const template: string = html`
+  <div class="user">
+    <h2>${user.name}</h2>
+    <p>${user.email}</p>
+  </div>
+`;
+```
+
+### WSXSwapType
+
+Union type for content swap types.
+
+```typescript
+type WSXSwapType = 
+  | 'innerHTML'
+  | 'outerHTML'
+  | 'beforebegin'
+  | 'afterbegin'
+  | 'beforeend'
+  | 'afterend'
+  | 'none';
+```
+
+#### Example
+
+```typescript
+function swapContent(target: string, html: string, swap: WSXSwapType): void {
+  const element = document.querySelector(target);
+  if (!element) return;
+  
+  switch (swap) {
+    case 'innerHTML':
+      element.innerHTML = html;
+      break;
+    case 'outerHTML':
+      element.outerHTML = html;
+      break;
+    // ... other cases
+  }
+}
+```
+
+### WSXTriggerType
+
+Union type for trigger types.
+
+```typescript
+type WSXTriggerType = 
+  | 'click'
+  | 'submit'
+  | 'change'
+  | 'input'
+  | 'keyup'
+  | 'keydown'
+  | 'focus'
+  | 'blur'
+  | 'load'
+  | 'scroll'
+  | 'resize'
+  | 'custom';
+```
+
+### WSXRequestStatus
+
+Union type for request statuses.
+
+```typescript
+type WSXRequestStatus = 
+  | 'pending'
+  | 'sent'
+  | 'success'
+  | 'error'
+  | 'timeout'
+  | 'cancelled';
+```
+
+## Generic Types
+
+### WSXData
+
+Generic type for request data.
+
+```typescript
+type WSXData<T = any> = T extends Record<string, any> ? T : Record<string, any>;
+```
+
+#### Example
+
+```typescript
+interface UserData {
+  id: number;
+  name: string;
+  email: string;
+}
+
+const request: WSXRequest = {
+  id: 'req-123',
+  handler: 'update-user',
+  target: '#user-info',
+  data: { id: 1, name: 'John', email: 'john@example.com' } as WSXData<UserData>
+};
+```
+
+### WSXResult
+
+Generic type for handler results.
+
+```typescript
+type WSXResult<T = any> = Promise<T> | T;
+```
+
+#### Example
+
+```typescript
+const handler = async (request: WSXRequest): WSXResult<WSXResponse> => {
+  const user = await fetchUser(request.data.id);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>${user.name}</div>`
+  };
+};
+```
+
+## Validation Types
+
+### WSXValidationRule
+
+Type for validation rules.
+
+```typescript
+interface WSXValidationRule {
+  required?: boolean;
+  type?: 'string' | 'number' | 'email' | 'url' | 'date';
+  minLength?: number;
+  maxLength?: number;
+  pattern?: RegExp;
+  custom?: (value: any) => boolean | string;
+}
+```
+
+#### Example
+
+```typescript
+const validationRules: Record<string, WSXValidationRule> = {
+  email: {
+    required: true,
+    type: 'email',
+    maxLength: 255
+  },
+  age: {
+    required: true,
+    type: 'number',
+    custom: (value) => value >= 18 || 'Must be 18 or older'
+  }
+};
+```
+
+### WSXValidationResult
+
+Type for validation results.
+
+```typescript
+interface WSXValidationResult {
+  valid: boolean;
+  errors: Record<string, string>;
+  data: Record<string, any>;
+}
+```
+
+## Authentication Types
+
+### WSXUser
+
+Type for authenticated users.
+
+```typescript
+interface WSXUser {
+  id: string | number;
+  username?: string;
+  email?: string;
+  roles?: string[];
+  permissions?: string[];
+  metadata?: Record<string, any>;
+}
+```
+
+#### Example
+
+```typescript
+const user: WSXUser = {
+  id: 123,
+  username: 'john_doe',
+  email: 'john@example.com',
+  roles: ['user', 'admin'],
+  permissions: ['read', 'write', 'delete']
+};
+```
+
+### WSXAuthContext
+
+Type for authentication context.
+
+```typescript
+interface WSXAuthContext {
+  user?: WSXUser;
+  token?: string;
+  isAuthenticated: boolean;
+  login: (credentials: any) => Promise<void>;
+  logout: () => Promise<void>;
+  refresh: () => Promise<void>;
+}
+```
+
+## Configuration Types
+
+### WSXConfig
+
+Type for global WSX configuration.
+
+```typescript
+interface WSXConfig {
+  url?: string;
+  debug?: boolean;
+  timeout?: number;
+  retries?: number;
+  headers?: Record<string, string>;
+  middleware?: WSXMiddleware[];
+  errorHandler?: WSXErrorHandler;
+}
+```
+
+## Module Declaration
+
+### Global Types
+
+```typescript
+declare global {
+  interface Window {
+    wsx: WSXClient;
+    wx: () => WSXClient;
+  }
+}
+```
+
+### Module Exports
+
+```typescript
+export {
+  WSXRequest,
+  WSXResponse,
+  WSXOOBUpdate,
+  WSXConnection,
+  WSXHandler,
+  WSXErrorHandler,
+  WSXMiddleware,
+  WSXClientOptions,
+  WSXSendOptions,
+  WSXEventMap,
+  WSXServerOptions,
+  WSXAdapter,
+  MessageHandler,
+  WSXHtmlHelper,
+  WSXSwapType,
+  WSXTriggerType,
+  WSXRequestStatus,
+  WSXData,
+  WSXResult,
+  WSXValidationRule,
+  WSXValidationResult,
+  WSXUser,
+  WSXAuthContext,
+  WSXConfig
+};
+```
+
+## Usage Examples
+
+### Client-Side Usage
+
+```typescript
+import { WSXClient, WSXClientOptions, WSXRequest, WSXResponse } from '@wsx/client';
+
+const options: WSXClientOptions = {
+  url: 'ws://localhost:3000/ws',
+  debug: true
+};
+
+const client = new WSXClient(options);
+
+// Type-safe request
+const request: WSXRequest = {
+  id: client.generateId(),
+  handler: 'get-user',
+  target: '#user-info',
+  data: { userId: 123 }
+};
+
+// Send request with proper typing
+client.send(request.handler, request.target, request.data)
+  .then((response: WSXResponse) => {
+    console.log('Response:', response);
+  })
+  .catch((error: Error) => {
+    console.error('Error:', error);
+  });
+```
+
+### Server-Side Usage
+
+```typescript
+import { WSXServer, WSXHandler, WSXRequest, WSXResponse, WSXConnection } from '@wsx/server';
+import { html } from '@wsx/core';
+
+const server = new WSXServer();
+
+// Type-safe handler
+const getUserHandler: WSXHandler = async (request: WSXRequest, connection: WSXConnection): Promise<WSXResponse> => {
+  const { userId } = request.data;
+  
+  // Type-safe session access
+  const sessionUser = connection.sessionData?.user as WSXUser;
+  
+  if (!sessionUser) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: html`<div class="error">Authentication required</div>`,
+      error: 'Not authenticated'
+    };
+  }
+  
+  const user = await getUserById(userId);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: html`<div>Welcome, ${user.name}!</div>`
+  };
+};
+
+server.on('get-user', getUserHandler);
+```
+
+## Best Practices
+
+1. **Use Strict Types**: Enable strict TypeScript mode for better type checking
+2. **Generic Constraints**: Use generic constraints for better type inference
+3. **Interface Segregation**: Keep interfaces focused and minimal
+4. **Type Guards**: Use type guards for runtime type checking
+5. **Utility Types**: Leverage TypeScript utility types for transformations
+6. **Documentation**: Document complex types with JSDoc comments
+7. **Validation**: Combine TypeScript types with runtime validation
+
+## Next Steps
+
+- Learn about [Client API Reference](/api-reference/client) for detailed method documentation
+- Explore [Performance Optimization](/advanced/performance) for type-safe performance patterns
+- Understand [Security Best Practices](/advanced/security) for secure type implementations

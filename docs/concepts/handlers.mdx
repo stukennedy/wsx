@@ -23,12 +23,14 @@ type WSXHandler = (
 Register handlers using the `on` method:
 
 ```javascript
+import { html } from '@wsx/core';
+
 // Named handler
 wsx.on("button-click", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Button clicked!</div>`
+    html: html`<div>Button clicked!</div>`
   };
 });
 
@@ -37,7 +39,7 @@ wsx.on(async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Default response</div>`
+    html: html`<div>Default response</div>`
   };
 });
 ```

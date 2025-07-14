@@ -1,0 +1,730 @@
+---
+title: "Client API Reference"
+description: "Complete reference for WSX client-side API"
+---
+
+# Client API Reference
+
+The WSX client provides a JavaScript API for interacting with WSX servers, sending requests, and handling responses.
+
+## WSX Client Class
+
+### Constructor
+
+```javascript
+const wsx = new WSX(options)
+```
+
+#### Parameters
+
+- `options` (Object): Configuration options
+  - `url` (string): WebSocket server URL
+  - `autoConnect` (boolean): Auto-connect on instantiation (default: `true`)
+  - `reconnect` (boolean): Auto-reconnect on connection loss (default: `true`)
+  - `reconnectInterval` (number): Reconnection interval in ms (default: `3000`)
+  - `maxReconnectAttempts` (number): Maximum reconnection attempts (default: `10`)
+  - `debug` (boolean): Enable debug logging (default: `false`)
+
+#### Example
+
+```javascript
+const wsx = new WSX({
+  url: 'ws://localhost:3000/ws',
+  autoConnect: true,
+  reconnect: true,
+  reconnectInterval: 3000,
+  maxReconnectAttempts: 10,
+  debug: false
+});
+```
+
+## Connection Methods
+
+### connect()
+
+Establishes a WebSocket connection to the server.
+
+```javascript
+wsx.connect()
+```
+
+#### Returns
+
+- `Promise<void>`: Resolves when connection is established
+
+#### Example
+
+```javascript
+try {
+  await wsx.connect();
+  console.log('Connected to WSX server');
+} catch (error) {
+  console.error('Connection failed:', error);
+}
+```
+
+### disconnect()
+
+Closes the WebSocket connection.
+
+```javascript
+wsx.disconnect()
+```
+
+#### Example
+
+```javascript
+wsx.disconnect();
+```
+
+### isConnected()
+
+Checks if the client is currently connected.
+
+```javascript
+wsx.isConnected()
+```
+
+#### Returns
+
+- `boolean`: `true` if connected, `false` otherwise
+
+#### Example
+
+```javascript
+if (wsx.isConnected()) {
+  console.log('Client is connected');
+}
+```
+
+## Request Methods
+
+### send()
+
+Sends a request to the server.
+
+```javascript
+wsx.send(handler, target, data, options)
+```
+
+#### Parameters
+
+- `handler` (string): Handler name on the server
+- `target` (string): CSS selector for the target element
+- `data` (Object): Data to send with the request (optional)
+- `options` (Object): Request options (optional)
+  - `swap` (string): How to swap the response content
+  - `trigger` (string): Trigger information
+  - `timeout` (number): Request timeout in ms
+
+#### Returns
+
+- `Promise<WSXResponse>`: Promise that resolves with the server response
+
+#### Example
+
+```javascript
+try {
+  const response = await wsx.send('get-user', '#user-info', { userId: 123 });
+  console.log('Response received:', response);
+} catch (error) {
+  console.error('Request failed:', error);
+}
+```
+
+### sendForm()
+
+Sends form data to the server.
+
+```javascript
+wsx.sendForm(handler, target, formElement, options)
+```
+
+#### Parameters
+
+- `handler` (string): Handler name on the server
+- `target` (string): CSS selector for the target element
+- `formElement` (HTMLFormElement): Form element to serialize
+- `options` (Object): Request options (optional)
+
+#### Returns
+
+- `Promise<WSXResponse>`: Promise that resolves with the server response
+
+#### Example
+
+```javascript
+const form = document.getElementById('userForm');
+try {
+  const response = await wsx.sendForm('submit-user', '#result', form);
+  console.log('Form submitted:', response);
+} catch (error) {
+  console.error('Form submission failed:', error);
+}
+```
+
+### sendFile()
+
+Sends a file to the server.
+
+```javascript
+wsx.sendFile(handler, target, file, options)
+```
+
+#### Parameters
+
+- `handler` (string): Handler name on the server
+- `target` (string): CSS selector for the target element
+- `file` (File): File to upload
+- `options` (Object): Request options (optional)
+  - `onProgress` (Function): Progress callback function
+
+#### Returns
+
+- `Promise<WSXResponse>`: Promise that resolves with the server response
+
+#### Example
+
+```javascript
+const fileInput = document.getElementById('fileInput');
+const file = fileInput.files[0];
+
+try {
+  const response = await wsx.sendFile('upload-file', '#upload-result', file, {
+    onProgress: (progress) => {
+      console.log(`Upload progress: ${progress}%`);
+    }
+  });
+  console.log('File uploaded:', response);
+} catch (error) {
+  console.error('File upload failed:', error);
+}
+```
+
+## Event Handling
+
+### on()
+
+Registers an event listener.
+
+```javascript
+wsx.on(event, callback)
+```
+
+#### Parameters
+
+- `event` (string): Event name
+- `callback` (Function): Event handler function
+
+#### Events
+
+- `connect`: Fired when connection is established
+- `disconnect`: Fired when connection is closed
+- `message`: Fired when a message is received
+- `error`: Fired when an error occurs
+- `reconnect`: Fired when reconnection starts
+- `reconnected`: Fired when reconnection succeeds
+
+#### Example
+
+```javascript
+wsx.on('connect', () => {
+  console.log('Connected to server');
+});
+
+wsx.on('disconnect', () => {
+  console.log('Disconnected from server');
+});
+
+wsx.on('error', (error) => {
+  console.error('Connection error:', error);
+});
+
+wsx.on('message', (message) => {
+  console.log('Message received:', message);
+});
+```
+
+### off()
+
+Removes an event listener.
+
+```javascript
+wsx.off(event, callback)
+```
+
+#### Parameters
+
+- `event` (string): Event name
+- `callback` (Function): Event handler function to remove
+
+#### Example
+
+```javascript
+function handleConnect() {
+  console.log('Connected');
+}
+
+wsx.on('connect', handleConnect);
+wsx.off('connect', handleConnect);
+```
+
+### once()
+
+Registers a one-time event listener.
+
+```javascript
+wsx.once(event, callback)
+```
+
+#### Parameters
+
+- `event` (string): Event name
+- `callback` (Function): Event handler function
+
+#### Example
+
+```javascript
+wsx.once('connect', () => {
+  console.log('Connected for the first time');
+});
+```
+
+## DOM Integration
+
+### processResponse()
+
+Processes a server response and updates the DOM.
+
+```javascript
+wsx.processResponse(response)
+```
+
+#### Parameters
+
+- `response` (WSXResponse): Server response object
+
+#### Example
+
+```javascript
+const response = {
+  id: 'req-123',
+  target: '#content',
+  html: '<div>New content</div>',
+  swap: 'innerHTML'
+};
+
+wsx.processResponse(response);
+```
+
+### swapContent()
+
+Swaps content in a target element.
+
+```javascript
+wsx.swapContent(target, html, swapType)
+```
+
+#### Parameters
+
+- `target` (string|HTMLElement): Target element or selector
+- `html` (string): HTML content to swap
+- `swapType` (string): How to swap the content
+
+#### Swap Types
+
+- `innerHTML`: Replace element's inner HTML
+- `outerHTML`: Replace the entire element
+- `beforebegin`: Insert before the element
+- `afterbegin`: Insert as first child
+- `beforeend`: Insert as last child
+- `afterend`: Insert after the element
+
+#### Example
+
+```javascript
+wsx.swapContent('#content', '<div>New content</div>', 'innerHTML');
+wsx.swapContent('#list', '<li>New item</li>', 'beforeend');
+```
+
+## Utility Methods
+
+### generateId()
+
+Generates a unique request ID.
+
+```javascript
+wsx.generateId()
+```
+
+#### Returns
+
+- `string`: Unique identifier
+
+#### Example
+
+```javascript
+const requestId = wsx.generateId();
+console.log('Request ID:', requestId);
+```
+
+### serializeForm()
+
+Serializes a form element to an object.
+
+```javascript
+wsx.serializeForm(formElement)
+```
+
+#### Parameters
+
+- `formElement` (HTMLFormElement): Form element to serialize
+
+#### Returns
+
+- `Object`: Serialized form data
+
+#### Example
+
+```javascript
+const form = document.getElementById('myForm');
+const formData = wsx.serializeForm(form);
+console.log('Form data:', formData);
+```
+
+### parseSelector()
+
+Parses a CSS selector and returns element information.
+
+```javascript
+wsx.parseSelector(selector)
+```
+
+#### Parameters
+
+- `selector` (string): CSS selector
+
+#### Returns
+
+- `Object`: Parsed selector information
+
+#### Example
+
+```javascript
+const parsed = wsx.parseSelector('#content .item:first-child');
+console.log('Parsed selector:', parsed);
+```
+
+## Configuration Methods
+
+### setConfig()
+
+Updates client configuration.
+
+```javascript
+wsx.setConfig(options)
+```
+
+#### Parameters
+
+- `options` (Object): Configuration options to update
+
+#### Example
+
+```javascript
+wsx.setConfig({
+  debug: true,
+  reconnectInterval: 5000
+});
+```
+
+### getConfig()
+
+Gets current client configuration.
+
+```javascript
+wsx.getConfig()
+```
+
+#### Returns
+
+- `Object`: Current configuration
+
+#### Example
+
+```javascript
+const config = wsx.getConfig();
+console.log('Current config:', config);
+```
+
+## Request Queue Methods
+
+### getQueueSize()
+
+Gets the current request queue size.
+
+```javascript
+wsx.getQueueSize()
+```
+
+#### Returns
+
+- `number`: Number of queued requests
+
+#### Example
+
+```javascript
+const queueSize = wsx.getQueueSize();
+console.log('Queue size:', queueSize);
+```
+
+### clearQueue()
+
+Clears the request queue.
+
+```javascript
+wsx.clearQueue()
+```
+
+#### Example
+
+```javascript
+wsx.clearQueue();
+```
+
+## Static Methods
+
+### WSX.create()
+
+Creates a new WSX instance with default configuration.
+
+```javascript
+WSX.create(url, options)
+```
+
+#### Parameters
+
+- `url` (string): WebSocket server URL
+- `options` (Object): Configuration options (optional)
+
+#### Returns
+
+- `WSX`: New WSX instance
+
+#### Example
+
+```javascript
+const wsx = WSX.create('ws://localhost:3000/ws', {
+  debug: true
+});
+```
+
+### WSX.version
+
+Gets the WSX client version.
+
+```javascript
+WSX.version
+```
+
+#### Returns
+
+- `string`: Version string
+
+#### Example
+
+```javascript
+console.log('WSX version:', WSX.version);
+```
+
+## Error Handling
+
+### WSXError
+
+Base error class for WSX-related errors.
+
+```javascript
+class WSXError extends Error {
+  constructor(message, code, details)
+}
+```
+
+#### Properties
+
+- `message` (string): Error message
+- `code` (string): Error code
+- `details` (Object): Additional error details
+
+#### Example
+
+```javascript
+try {
+  await wsx.send('invalid-handler', '#target');
+} catch (error) {
+  if (error instanceof WSXError) {
+    console.error('WSX Error:', error.message);
+    console.error('Error code:', error.code);
+    console.error('Details:', error.details);
+  }
+}
+```
+
+### ConnectionError
+
+Error thrown when connection fails.
+
+```javascript
+class ConnectionError extends WSXError
+```
+
+### TimeoutError
+
+Error thrown when request times out.
+
+```javascript
+class TimeoutError extends WSXError
+```
+
+### ValidationError
+
+Error thrown when request validation fails.
+
+```javascript
+class ValidationError extends WSXError
+```
+
+## HTML Attributes
+
+### wx-config
+
+Configures WSX for a page or element.
+
+```html
+<div wx-config='{"url": "ws://localhost:3000/ws", "debug": true}'>
+  <!-- WSX-enabled content -->
+</div>
+```
+
+### wx-send
+
+Specifies the handler to call when triggered.
+
+```html
+<button wx-send="click-handler">Click me</button>
+```
+
+### wx-target
+
+Specifies the target element for the response.
+
+```html
+<button wx-send="click-handler" wx-target="#result">Click me</button>
+```
+
+### wx-trigger
+
+Specifies when to trigger the request.
+
+```html
+<input wx-send="search" wx-target="#results" wx-trigger="keyup delay:300ms" />
+```
+
+### wx-swap
+
+Specifies how to swap the response content.
+
+```html
+<button wx-send="add-item" wx-target="#list" wx-swap="beforeend">Add Item</button>
+```
+
+### wx-include
+
+Specifies what data to include with the request.
+
+```html
+<input wx-send="validate" wx-target="#feedback" wx-include="value" />
+<form wx-send="submit" wx-target="#result" wx-include="form">
+  <!-- form fields -->
+</form>
+```
+
+### wx-confirm
+
+Shows a confirmation dialog before sending the request.
+
+```html
+<button wx-send="delete-item" wx-target="#result" wx-confirm="Are you sure?">
+  Delete
+</button>
+```
+
+### wx-disable
+
+Disables the element while the request is in progress.
+
+```html
+<button wx-send="submit" wx-target="#result" wx-disable="true">
+  Submit
+</button>
+```
+
+### wx-indicator
+
+Shows a loading indicator while the request is in progress.
+
+```html
+<button wx-send="submit" wx-target="#result" wx-indicator="#loading">
+  Submit
+</button>
+<div id="loading" style="display: none;">Loading...</div>
+```
+
+## Global Functions
+
+### window.wsx
+
+Global WSX instance created automatically when WSX is initialized with HTML attributes.
+
+#### Example
+
+```javascript
+// Access global WSX instance
+window.wsx.send('test-handler', '#target');
+```
+
+### wx()
+
+Shorthand function for accessing the global WSX instance.
+
+```javascript
+wx().send('test-handler', '#target');
+```
+
+## Best Practices
+
+1. **Error Handling**: Always wrap WSX calls in try-catch blocks
+2. **Event Cleanup**: Remove event listeners when no longer needed
+3. **Connection Management**: Handle connection state changes appropriately
+4. **Request Queuing**: Monitor queue size to prevent memory issues
+5. **Performance**: Use appropriate swap types for optimal DOM updates
+6. **Security**: Validate and sanitize all data before sending
+7. **Accessibility**: Ensure dynamic content updates are accessible
+
+## Browser Compatibility
+
+WSX client supports:
+- Chrome 60+
+- Firefox 55+
+- Safari 11+
+- Edge 79+
+
+For older browsers, consider using polyfills for:
+- WebSocket
+- Promise
+- fetch API
+
+## Next Steps
+
+- Learn about [Type Definitions](/api-reference/types) for TypeScript support
+- Explore [Performance Optimization](/advanced/performance) for client-side optimization
+- Understand [Security Best Practices](/advanced/security) for secure client implementation

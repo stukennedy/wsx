@@ -18,6 +18,7 @@ npm install @wsx/core @wsx/express
 ### Quick Start
 ```javascript
 import { createExpressWSXServer } from "@wsx/express";
+import { html } from '@wsx/core';
 import express from "express";
 
 // Create WSX server with Express adapter
@@ -29,7 +30,7 @@ wsx.on("hello", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Hello from Express at ${new Date().toLocaleTimeString()}!</div>`
+    html: html`<div>Hello from Express at ${new Date().toLocaleTimeString()}!</div>`
   };
 });
 

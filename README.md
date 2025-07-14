@@ -42,6 +42,7 @@ npm install @wsx/core @wsx/hono
 
 ```javascript
 import { createExpressWSXServer } from "@wsx/express";
+import { html } from '@wsx/core';
 
 const wsx = createExpressWSXServer();
 const app = wsx.getApp();
@@ -51,7 +52,7 @@ wsx.on("update-content", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Updated at ${new Date().toLocaleTimeString()}</div>`,
+    html: html`<div>Updated at ${new Date().toLocaleTimeString()}</div>`,
     swap: "innerHTML",
   };
 });
@@ -63,6 +64,7 @@ app.listen(3000);
 
 ```javascript
 import { createHonoWSXServer } from "@wsx/hono";
+import { html } from '@wsx/core';
 
 const wsx = createHonoWSXServer();
 const app = wsx.getApp();
@@ -71,7 +73,7 @@ wsx.on("update-content", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Updated at ${new Date().toLocaleTimeString()}</div>`,
+    html: html`<div>Updated at ${new Date().toLocaleTimeString()}</div>`,
     swap: "innerHTML",
   };
 });
@@ -391,6 +393,48 @@ setInterval(() => {
   `
   );
 }, 5000);
+```
+
+## 🏷️ HTML Template Helper
+
+WSX provides a template helper for better TypeScript support and syntax highlighting when building HTML in your handlers:
+
+```javascript
+import { html } from '@wsx/core';
+
+wsx.on("create-user", async (request, connection) => {
+  const { name, email } = request.data;
+  
+  // Use the html helper for template literals
+  return {
+    id: request.id,
+    target: request.target,
+    html: html`
+      <div class="user-card">
+        <h3>${name}</h3>
+        <p>Email: ${email}</p>
+        <small>Created: ${new Date().toLocaleString()}</small>
+      </div>
+    `
+  };
+});
+```
+
+### Benefits
+
+- **TypeScript Support**: Better type inference and checking
+- **Syntax Highlighting**: Improved IDE support for HTML in template literals
+- **Auto-completion**: Better HTML attribute and tag completion
+- **Linting**: HTML linting works inside template literals
+
+### Usage Pattern
+
+```javascript
+// ✅ Recommended: Use the html helper
+html: html`<div>Content with ${variable}</div>`
+
+// ❌ Avoid: Plain template literals
+html: `<div>Content with ${variable}</div>`
 ```
 
 ## 📖 API Reference

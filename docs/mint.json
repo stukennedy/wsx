@@ -113,15 +113,6 @@
         "api-reference/client",
         "api-reference/types"
       ]
-    },
-    {
-      "group": "Advanced",
-      "pages": [
-        "advanced/performance",
-        "advanced/security",
-        "advanced/debugging",
-        "advanced/testing"
-      ]
     }
   ],
   "footerSocials": {
