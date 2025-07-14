@@ -1,0 +1,386 @@
+---
+title: "Client Setup"
+description: "Setting up the WSX client for real-time communication"
+---
+
+# Client Setup
+
+The WSX client library enables real-time communication between your web applications and WSX servers. This guide covers installation, configuration, and basic usage.
+
+## Installation
+
+### Via CDN
+The simplest way to get started is by including WSX from a CDN:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@wsx/client@latest/dist/wsx.min.js"></script>
+```
+
+### Download
+Download the WSX client library and include it in your project:
+
+```html
+<script src="/path/to/wsx.js"></script>
+```
+
+### Build from Source
+If you're building from the WSX repository:
+
+```bash
+cd packages/client
+npm run build
+# Copy dist/wsx.js to your project
+```
+
+## Basic Setup
+
+### HTML Configuration
+Add the WSX configuration to your HTML page:
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WSX Application</title>
+  <script src="/wsx.js"></script>
+</head>
+<body>
+  <div wx-config='{"url": "ws://localhost:3000/ws"}'>
+    <!-- Your WSX-enabled content goes here -->
+    <div id="content">
+      <button wx-send="click" wx-target="#content">Click Me</button>
+    </div>
+  </div>
+</body>
+</html>
+```
+
+### Configuration Options
+The `wx-config` attribute accepts a JSON object with these options:
+
+```javascript
+{
+  "url": "ws://localhost:3000/ws",     // WebSocket URL (required)
+  "debug": false,                      // Enable debug logging
+  "reconnectInterval": 3000,           // Reconnection interval in ms
+  "maxReconnectAttempts": 5,           // Maximum reconnection attempts
+  "timeout": 10000,                    // Request timeout in ms
+  "autoConnect": true                  // Auto-connect on page load
+}
+```
+
+## JavaScript API
+
+### Manual Initialization
+You can also initialize WSX programmatically:
+
+```javascript
+// Initialize WSX
+const wsx = new WSX({
+  url: "ws://localhost:3000/ws",
+  debug: true,
+  reconnectInterval: 2000,
+  maxReconnectAttempts: 10
+});
+
+// Connect to server
+wsx.connect();
+```
+
+### Connection Management
+```javascript
+// Check connection status
+if (wsx.isConnected()) {
+  console.log("Connected to WSX server");
+}
+
+// Manually disconnect
+wsx.disconnect();
+
+// Reconnect
+wsx.reconnect();
+```
+
+## Configuration Examples
+
+### Development Setup
+```html
+<div wx-config='{
+  "url": "ws://localhost:3000/ws",
+  "debug": true,
+  "reconnectInterval": 1000,
+  "maxReconnectAttempts": 10
+}'>
+  <!-- Development content -->
+</div>
+```
+
+### Production Setup
+```html
+<div wx-config='{
+  "url": "wss://your-domain.com/ws",
+  "debug": false,
+  "reconnectInterval": 5000,
+  "maxReconnectAttempts": 3,
+  "timeout": 15000
+}'>
+  <!-- Production content -->
+</div>
+```
+
+### Secure WebSocket (WSS)
+```html
+<div wx-config='{
+  "url": "wss://secure-app.com/ws",
+  "debug": false
+}'>
+  <!-- Secure WebSocket content -->
+</div>
+```
+
+## Environment-Specific Configuration
+
+### Dynamic Configuration
+```javascript
+// Determine WebSocket URL based on environment
+const wsUrl = location.protocol === 'https:' 
+  ? `wss://${location.host}/ws`
+  : `ws://${location.host}/ws`;
+
+// Set configuration
+const config = {
+  url: wsUrl,
+  debug: location.hostname === 'localhost',
+  reconnectInterval: 3000,
+  maxReconnectAttempts: 5
+};
+
+// Apply configuration
+document.querySelector('[wx-config]').setAttribute('wx-config', JSON.stringify(config));
+```
+
+### Multiple Environments
+```javascript
+const environments = {
+  development: {
+    url: "ws://localhost:3000/ws",
+    debug: true,
+    reconnectInterval: 1000
+  },
+  staging: {
+    url: "wss://staging.example.com/ws",
+    debug: true,
+    reconnectInterval: 2000
+  },
+  production: {
+    url: "wss://api.example.com/ws",
+    debug: false,
+    reconnectInterval: 5000
+  }
+};
+
+const env = process.env.NODE_ENV || 'development';
+const config = environments[env];
+```
+
+## Error Handling
+
+### Connection Errors
+```javascript
+// Listen for connection events
+document.addEventListener('wsx:connected', (event) => {
+  console.log('Connected to WSX server');
+  // Hide connection error messages
+  document.querySelector('#connection-error').style.display = 'none';
+});
+
+document.addEventListener('wsx:disconnected', (event) => {
+  console.log('Disconnected from WSX server');
+  // Show connection error message
+  document.querySelector('#connection-error').style.display = 'block';
+});
+
+document.addEventListener('wsx:error', (event) => {
+  console.error('WSX error:', event.detail);
+  // Handle connection errors
+});
+```
+
+### Reconnection Logic
+```javascript
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+
+document.addEventListener('wsx:disconnected', () => {
+  if (reconnectAttempts < maxReconnectAttempts) {
+    reconnectAttempts++;
+    console.log(`Reconnection attempt ${reconnectAttempts}/${maxReconnectAttempts}`);
+    
+    setTimeout(() => {
+      wsx.reconnect();
+    }, 2000 * reconnectAttempts); // Exponential backoff
+  } else {
+    console.error('Max reconnection attempts reached');
+    // Show persistent error message
+  }
+});
+
+document.addEventListener('wsx:connected', () => {
+  reconnectAttempts = 0; // Reset counter on successful connection
+});
+```
+
+## Security Considerations
+
+### Authentication
+```javascript
+// Include authentication token in WebSocket URL
+const token = localStorage.getItem('authToken');
+const wsUrl = `wss://api.example.com/ws?token=${token}`;
+
+const config = {
+  url: wsUrl,
+  debug: false
+};
+```
+
+### CORS and WebSocket Security
+```javascript
+// For cross-origin WebSocket connections
+const config = {
+  url: "wss://api.example.com/ws",
+  headers: {
+    'Origin': 'https://your-app.com'
+  }
+};
+```
+
+## Advanced Setup
+
+### Custom Event Handlers
+```javascript
+// Initialize with custom event handlers
+const wsx = new WSX({
+  url: "ws://localhost:3000/ws",
+  onConnect: () => {
+    console.log('Custom connect handler');
+  },
+  onDisconnect: () => {
+    console.log('Custom disconnect handler');
+  },
+  onError: (error) => {
+    console.error('Custom error handler:', error);
+  }
+});
+```
+
+### Conditional Loading
+```javascript
+// Load WSX only when needed
+if (document.querySelector('[wx-send]')) {
+  // Load WSX script dynamically
+  const script = document.createElement('script');
+  script.src = '/wsx.js';
+  script.onload = () => {
+    // Initialize WSX after script loads
+    new WSX({
+      url: "ws://localhost:3000/ws",
+      autoConnect: true
+    });
+  };
+  document.head.appendChild(script);
+}
+```
+
+### Service Worker Integration
+```javascript
+// Register service worker for offline support
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(() => {
+    // Initialize WSX after service worker is ready
+    new WSX({
+      url: "ws://localhost:3000/ws",
+      offline: true // Enable offline queue
+    });
+  });
+}
+```
+
+## Testing Setup
+
+### Test Environment
+```javascript
+// Mock WebSocket for testing
+const mockWS = {
+  send: jest.fn(),
+  close: jest.fn(),
+  addEventListener: jest.fn()
+};
+
+// Initialize WSX with mock
+const wsx = new WSX({
+  url: "ws://localhost:3000/ws",
+  WebSocket: mockWS // Use mock instead of real WebSocket
+});
+```
+
+### Integration Tests
+```javascript
+// Test WSX initialization
+describe('WSX Setup', () => {
+  test('should initialize with correct config', () => {
+    const config = {
+      url: "ws://localhost:3000/ws",
+      debug: true
+    };
+    
+    const wsx = new WSX(config);
+    expect(wsx.config).toEqual(config);
+  });
+  
+  test('should connect to WebSocket', async () => {
+    const wsx = new WSX({
+      url: "ws://localhost:3000/ws"
+    });
+    
+    await wsx.connect();
+    expect(wsx.isConnected()).toBe(true);
+  });
+});
+```
+
+## Common Issues
+
+### WebSocket URL Issues
+```javascript
+// Common mistake: wrong protocol
+❌ url: "http://localhost:3000/ws"  // Should be ws:// or wss://
+✅ url: "ws://localhost:3000/ws"    // Correct
+
+// Common mistake: wrong path
+❌ url: "ws://localhost:3000"       // Missing /ws path
+✅ url: "ws://localhost:3000/ws"    // Correct with path
+```
+
+### CORS Issues
+```javascript
+// If you get CORS errors, ensure your server allows WebSocket connections
+// from your domain, or use same-origin requests
+```
+
+### Configuration Parsing
+```html
+<!-- Common mistake: single quotes in JSON -->
+❌ <div wx-config="{'url': 'ws://localhost:3000/ws'}">
+✅ <div wx-config='{"url": "ws://localhost:3000/ws"}'>
+
+<!-- Common mistake: missing quotes -->
+❌ <div wx-config='{url: "ws://localhost:3000/ws"}'>
+✅ <div wx-config='{"url": "ws://localhost:3000/ws"}'>
+```
+
+## Next Steps
+
+- Learn about [Client Attributes](/client/attributes) for element configuration
+- Explore [Client Events](/client/events) for handling responses
+- Understand [Client Configuration](/client/configuration) for advanced options

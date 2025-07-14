@@ -1,0 +1,425 @@
+---
+title: "Out-of-Band Updates"
+description: "Understanding out-of-band updates for multiple element updates"
+---
+
+# Out-of-Band Updates
+
+Out-of-Band (OOB) updates allow you to update multiple DOM elements from a single WebSocket response, enabling rich, multi-area updates that keep your UI in sync across different sections of your application.
+
+## What Are OOB Updates?
+
+OOB updates let you update elements outside of the main target element specified in the client request. This is particularly useful for:
+
+- Updating navigation counters
+- Showing notifications
+- Refreshing status indicators
+- Updating multiple related sections
+- Maintaining consistency across the UI
+
+## Basic OOB Updates
+
+### Single OOB Update
+```javascript
+wsx.on("update-content", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Main content updated</div>`,
+    oob: [
+      {
+        target: "#notification",
+        html: `<div class="alert">Content was updated!</div>`,
+        swap: "innerHTML"
+      }
+    ]
+  };
+});
+```
+
+### Multiple OOB Updates
+```javascript
+wsx.on("user-login", async (request, connection) => {
+  const user = await authenticateUser(request.data);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Welcome, ${user.name}!</div>`,
+    oob: [
+      {
+        target: "#user-menu",
+        html: `<div class="user-menu">
+          <img src="${user.avatar}" alt="${user.name}" />
+          <span>${user.name}</span>
+        </div>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#login-status",
+        html: `<div class="status online">Online</div>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#notifications",
+        html: `<div class="notification">You have ${user.unreadCount} new messages</div>`,
+        swap: "afterbegin"
+      }
+    ]
+  };
+});
+```
+
+## OOB Update Structure
+
+### WSXOOBUpdate Interface
+```typescript
+interface WSXOOBUpdate {
+  target: string;    // CSS selector for target element
+  html: string;      // HTML content to swap
+  swap?: string;     // How to swap content (default: innerHTML)
+}
+```
+
+### Example with Different Swaps
+```javascript
+return {
+  id: request.id,
+  target: "#main-content",
+  html: `<div>Main update</div>`,
+  oob: [
+    {
+      target: "#counter",
+      html: `<span>42</span>`,
+      swap: "innerHTML"
+    },
+    {
+      target: "#messages",
+      html: `<div class="message">New message</div>`,
+      swap: "afterbegin"
+    },
+    {
+      target: "#status-bar",
+      html: `<div class="status">Processing complete</div>`,
+      swap: "beforeend"
+    }
+  ]
+};
+```
+
+## Real-World Examples
+
+### E-commerce Cart Update
+```javascript
+wsx.on("add-to-cart", async (request, connection) => {
+  const item = await addItemToCart(request.data.itemId);
+  const cart = await getCart();
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div class="success">Added ${item.name} to cart</div>`,
+    oob: [
+      {
+        target: "#cart-count",
+        html: `<span class="badge">${cart.itemCount}</span>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#cart-total",
+        html: `<span>$${cart.total.toFixed(2)}</span>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#cart-items",
+        html: `<div class="cart-item">
+          <img src="${item.image}" alt="${item.name}" />
+          <span>${item.name}</span>
+          <span>$${item.price}</span>
+        </div>`,
+        swap: "afterbegin"
+      }
+    ]
+  };
+});
+```
+
+### Dashboard Updates
+```javascript
+wsx.on("refresh-dashboard", async (request, connection) => {
+  const stats = await getDashboardStats();
+  
+  return {
+    id: request.id,
+    target: "#main-chart",
+    html: generateChartHTML(stats.chartData),
+    oob: [
+      {
+        target: "#total-users",
+        html: `<div class="stat-value">${stats.totalUsers}</div>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#active-sessions",
+        html: `<div class="stat-value">${stats.activeSessions}</div>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#revenue",
+        html: `<div class="stat-value">$${stats.revenue.toFixed(2)}</div>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#recent-activity",
+        html: stats.recentActivity.map(activity => 
+          `<div class="activity-item">${activity.description}</div>`
+        ).join(''),
+        swap: "innerHTML"
+      }
+    ]
+  };
+});
+```
+
+### Real-time Chat with Activity
+```javascript
+wsx.on("send-message", async (request, connection) => {
+  const message = await saveMessage(request.data);
+  
+  // Broadcast to all users
+  wsx.broadcast("#chat-messages", 
+    `<div class="message">
+      <span class="user">${message.user}</span>
+      <span class="text">${message.text}</span>
+    </div>`,
+    "beforeend"
+  );
+  
+  // Update sender with confirmation and stats
+  return {
+    id: request.id,
+    target: "#message-input",
+    html: `<input type="text" placeholder="Message sent..." />`,
+    oob: [
+      {
+        target: "#message-count",
+        html: `<span>${message.userMessageCount} messages</span>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#online-users",
+        html: `<div class="user-count">${wsx.getConnectionCount()} users online</div>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#user-activity",
+        html: `<div class="activity">Last message: ${new Date().toLocaleTimeString()}</div>`,
+        swap: "innerHTML"
+      }
+    ]
+  };
+});
+```
+
+## Advanced OOB Patterns
+
+### Conditional OOB Updates
+```javascript
+wsx.on("conditional-update", async (request, connection) => {
+  const user = connection.sessionData?.user;
+  const isAdmin = user?.role === 'admin';
+  
+  const oobUpdates = [
+    {
+      target: "#user-info",
+      html: `<div>Welcome, ${user.name}</div>`,
+      swap: "innerHTML"
+    }
+  ];
+  
+  // Add admin-only updates
+  if (isAdmin) {
+    oobUpdates.push({
+      target: "#admin-panel",
+      html: `<div class="admin-controls">Admin Panel</div>`,
+      swap: "innerHTML"
+    });
+  }
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Action completed</div>`,
+    oob: oobUpdates
+  };
+});
+```
+
+### Dynamic OOB Generation
+```javascript
+wsx.on("bulk-update", async (request, connection) => {
+  const updates = await getBulkUpdates(request.data.ids);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Bulk update completed</div>`,
+    oob: updates.map(update => ({
+      target: `#item-${update.id}`,
+      html: `<div class="item-status ${update.status}">${update.statusText}</div>`,
+      swap: "innerHTML"
+    }))
+  };
+});
+```
+
+### OOB with Broadcasting
+```javascript
+wsx.on("global-announcement", async (request, connection) => {
+  const announcement = await createAnnouncement(request.data);
+  
+  // Broadcast to all users
+  wsx.broadcast("#announcements", 
+    `<div class="announcement">${announcement.text}</div>`,
+    "afterbegin"
+  );
+  
+  // Send confirmation to sender with admin info
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div class="success">Announcement sent to ${wsx.getConnectionCount()} users</div>`,
+    oob: [
+      {
+        target: "#announcement-count",
+        html: `<span>${announcement.totalCount}</span>`,
+        swap: "innerHTML"
+      },
+      {
+        target: "#last-announcement",
+        html: `<div>Last: ${new Date().toLocaleTimeString()}</div>`,
+        swap: "innerHTML"
+      }
+    ]
+  };
+});
+```
+
+## OOB Update Helpers
+
+### Utility Functions
+```javascript
+// Helper to create consistent OOB updates
+function createCounterUpdate(elementId, count) {
+  return {
+    target: `#${elementId}`,
+    html: `<span class="counter">${count}</span>`,
+    swap: "innerHTML"
+  };
+}
+
+function createNotificationUpdate(message, type = 'info') {
+  return {
+    target: "#notifications",
+    html: `<div class="notification ${type}">${message}</div>`,
+    swap: "afterbegin"
+  };
+}
+
+// Use in handlers
+wsx.on("update-with-helpers", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Main content</div>`,
+    oob: [
+      createCounterUpdate("action-counter", 42),
+      createNotificationUpdate("Action completed", "success")
+    ]
+  };
+});
+```
+
+### OOB Builder Pattern
+```javascript
+class OOBBuilder {
+  constructor() {
+    this.updates = [];
+  }
+  
+  updateElement(target, html, swap = "innerHTML") {
+    this.updates.push({ target, html, swap });
+    return this;
+  }
+  
+  updateCounter(target, count) {
+    return this.updateElement(target, `<span>${count}</span>`);
+  }
+  
+  addNotification(message, type = 'info') {
+    return this.updateElement("#notifications", 
+      `<div class="notification ${type}">${message}</div>`, 
+      "afterbegin"
+    );
+  }
+  
+  build() {
+    return this.updates;
+  }
+}
+
+// Usage
+wsx.on("complex-update", async (request, connection) => {
+  const oob = new OOBBuilder()
+    .updateCounter("#score", 150)
+    .addNotification("Score updated!", "success")
+    .updateElement("#status", "<div>Active</div>")
+    .build();
+    
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Complex update completed</div>`,
+    oob
+  };
+});
+```
+
+## Performance Considerations
+
+### Efficient OOB Updates
+- Minimize the number of OOB updates per response
+- Use specific selectors to avoid unnecessary DOM queries
+- Batch related updates when possible
+- Consider the impact on client-side performance
+
+### OOB Update Strategies
+```javascript
+// Good: Specific updates
+oob: [
+  { target: "#counter", html: "42", swap: "innerHTML" },
+  { target: "#status", html: "Active", swap: "innerHTML" }
+]
+
+// Avoid: Too many small updates
+oob: Array.from({length: 100}, (_, i) => ({
+  target: `#item-${i}`,
+  html: `<div>Item ${i}</div>`,
+  swap: "innerHTML"
+}))
+```
+
+## Best Practices
+
+1. **Use Sparingly**: Don't overuse OOB updates - they can make debugging difficult
+2. **Specific Selectors**: Use specific CSS selectors to avoid conflicts
+3. **Consistent Patterns**: Establish patterns for common OOB updates
+4. **Document Dependencies**: Document which elements depend on which actions
+5. **Error Handling**: Handle cases where OOB targets don't exist
+6. **Performance**: Monitor performance impact of frequent OOB updates
+
+## Next Steps
+
+- Learn about [Broadcasting](/server/broadcasting) for multi-client updates
+- Explore [Client Configuration](/client/configuration) for OOB settings
+- Understand [Server Broadcasting](/server/broadcasting) for real-time features

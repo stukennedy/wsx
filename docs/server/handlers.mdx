@@ -1,0 +1,629 @@
+---
+title: "Server Handlers"
+description: "Processing client requests with WSX server handlers"
+---
+
+# Server Handlers
+
+Handlers are the core of WSX server functionality. They process incoming WebSocket requests from clients and return responses that update the browser DOM.
+
+## Basic Handler Setup
+
+### Simple Handler
+```javascript
+wsx.on("button-click", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Button clicked at ${new Date().toLocaleTimeString()}</div>`
+  };
+});
+```
+
+### Default Handler
+```javascript
+// Catch-all handler for unmatched requests
+wsx.on(async (request, connection) => {
+  console.log(`Unhandled request: ${request.handler}`);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Handler "${request.handler}" not found</div>`
+  };
+});
+```
+
+## Handler Function Signature
+
+### Request Object
+```typescript
+interface WSXRequest {
+  id: string;                    // Unique request ID
+  handler: string;               // Handler name (from wx-send)
+  target: string;                // Target selector (from wx-target)
+  trigger: string;               // Trigger event type
+  data?: Record<string, any>;    // Form data or custom data
+  swap?: string;                 // Swap specification
+}
+```
+
+### Connection Object
+```typescript
+interface WSXConnection {
+  id: string;                    // Unique connection ID
+  sessionData?: Record<string, any>; // Session storage
+  send(data: string): void;      // Send data to client
+  close(): void;                 // Close connection
+}
+```
+
+### Response Object
+```typescript
+interface WSXResponse {
+  id: string;                    // Must match request.id
+  target: string;                // CSS selector for target
+  html: string;                  // HTML content to swap
+  swap?: string;                 // How to swap content
+  oob?: WSXOOBUpdate[];         // Out-of-band updates
+}
+```
+
+## Handler Patterns
+
+### Form Handling
+```javascript
+wsx.on("submit-form", async (request, connection) => {
+  const { username, email, password } = request.data;
+  
+  // Validate input
+  if (!username || !email || !password) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">All fields are required</div>`
+    };
+  }
+  
+  try {
+    // Save to database
+    const user = await createUser({ username, email, password });
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="success">User ${user.username} created successfully!</div>`
+    };
+  } catch (error) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Registration failed: ${error.message}</div>`
+    };
+  }
+});
+```
+
+### Data Fetching
+```javascript
+wsx.on("load-users", async (request, connection) => {
+  try {
+    const users = await User.findAll({
+      order: [['createdAt', 'DESC']],
+      limit: 20
+    });
+    
+    const usersHtml = users.map(user => `
+      <div class="user-card">
+        <h3>${user.name}</h3>
+        <p>${user.email}</p>
+        <button wx-send="delete-user" data-user-id="${user.id}">Delete</button>
+      </div>
+    `).join('');
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: usersHtml
+    };
+  } catch (error) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Failed to load users</div>`
+    };
+  }
+});
+```
+
+### CRUD Operations
+```javascript
+// Create
+wsx.on("create-post", async (request, connection) => {
+  const { title, content } = request.data;
+  const userId = connection.sessionData?.user?.id;
+  
+  if (!userId) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Authentication required</div>`
+    };
+  }
+  
+  const post = await Post.create({ title, content, userId });
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div class="success">Post "${title}" created</div>`,
+    oob: [{
+      target: "#post-list",
+      html: `<div class="post">${title}</div>`,
+      swap: "afterbegin"
+    }]
+  };
+});
+
+// Update
+wsx.on("update-post", async (request, connection) => {
+  const { id, title, content } = request.data;
+  
+  await Post.update({ title, content }, { where: { id } });
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div class="success">Post updated</div>`
+  };
+});
+
+// Delete
+wsx.on("delete-post", async (request, connection) => {
+  const { id } = request.data;
+  
+  await Post.destroy({ where: { id } });
+  
+  return {
+    id: request.id,
+    target: `#post-${id}`,
+    html: "",
+    swap: "outerHTML"
+  };
+});
+```
+
+## Advanced Handler Features
+
+### Session Management
+```javascript
+wsx.on("login", async (request, connection) => {
+  const { username, password } = request.data;
+  
+  const user = await authenticate(username, password);
+  
+  if (user) {
+    // Store user in session
+    connection.sessionData = {
+      ...connection.sessionData,
+      user,
+      loginTime: new Date()
+    };
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Welcome, ${user.name}!</div>`
+    };
+  } else {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Invalid credentials</div>`
+    };
+  }
+});
+
+// Use session data in other handlers
+wsx.on("get-profile", async (request, connection) => {
+  const user = connection.sessionData?.user;
+  
+  if (!user) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Please log in first</div>`
+    };
+  }
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `
+      <div class="profile">
+        <h2>${user.name}</h2>
+        <p>Email: ${user.email}</p>
+        <p>Logged in: ${connection.sessionData.loginTime}</p>
+      </div>
+    `
+  };
+});
+```
+
+### Multiple Responses
+```javascript
+wsx.on("complex-update", async (request, connection) => {
+  const updates = await getMultipleUpdates();
+  
+  // Return array of responses
+  return updates.map(update => ({
+    id: request.id,
+    target: update.target,
+    html: update.html,
+    swap: update.swap
+  }));
+});
+```
+
+### Conditional Logic
+```javascript
+wsx.on("admin-action", async (request, connection) => {
+  const user = connection.sessionData?.user;
+  
+  // Check permissions
+  if (!user?.isAdmin) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Admin access required</div>`
+    };
+  }
+  
+  // Perform admin action
+  const result = await performAdminAction(request.data);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div class="success">Admin action completed: ${result}</div>`
+  };
+});
+```
+
+## Error Handling
+
+### Try-Catch Pattern
+```javascript
+wsx.on("database-operation", async (request, connection) => {
+  try {
+    const result = await performDatabaseOperation(request.data);
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="success">Operation completed: ${result.id}</div>`
+    };
+  } catch (error) {
+    console.error('Database operation failed:', error);
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Operation failed. Please try again.</div>`
+    };
+  }
+});
+```
+
+### Validation
+```javascript
+wsx.on("validate-data", async (request, connection) => {
+  const { email, age } = request.data;
+  
+  // Validation logic
+  const errors = [];
+  
+  if (!email || !email.includes('@')) {
+    errors.push('Valid email is required');
+  }
+  
+  if (!age || age < 18) {
+    errors.push('Age must be 18 or older');
+  }
+  
+  if (errors.length > 0) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Validation errors: ${errors.join(', ')}</div>`
+    };
+  }
+  
+  // Proceed with valid data
+  const result = await processValidData({ email, age });
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div class="success">Data processed successfully</div>`
+  };
+});
+```
+
+### Graceful Degradation
+```javascript
+wsx.on("external-api-call", async (request, connection) => {
+  try {
+    // Try primary API
+    const result = await primaryAPI.call(request.data);
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Primary API result: ${result}</div>`
+    };
+  } catch (primaryError) {
+    try {
+      // Fallback to secondary API
+      const result = await secondaryAPI.call(request.data);
+      
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div>Fallback API result: ${result}</div>`
+      };
+    } catch (secondaryError) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">All APIs unavailable. Please try again later.</div>`
+      };
+    }
+  }
+});
+```
+
+## Handler Middleware
+
+### Authentication Middleware
+```javascript
+function requireAuth(handler) {
+  return async (request, connection) => {
+    const user = connection.sessionData?.user;
+    
+    if (!user) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Authentication required</div>`
+      };
+    }
+    
+    return handler(request, connection);
+  };
+}
+
+// Use middleware
+wsx.on("protected-action", requireAuth(async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Protected action executed</div>`
+  };
+}));
+```
+
+### Validation Middleware
+```javascript
+function validateInput(schema) {
+  return (handler) => async (request, connection) => {
+    const validation = schema.validate(request.data);
+    
+    if (validation.error) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Validation failed: ${validation.error.message}</div>`
+      };
+    }
+    
+    return handler(request, connection);
+  };
+}
+
+// Use validation middleware
+const userSchema = {
+  username: { required: true, minLength: 3 },
+  email: { required: true, type: 'email' }
+};
+
+wsx.on("create-user", validateInput(userSchema)(async (request, connection) => {
+  const user = await createUser(request.data);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>User ${user.username} created</div>`
+  };
+}));
+```
+
+### Logging Middleware
+```javascript
+function logRequests(handler) {
+  return async (request, connection) => {
+    const startTime = Date.now();
+    
+    console.log(`[${new Date().toISOString()}] ${request.handler} - ${connection.id}`);
+    
+    try {
+      const result = await handler(request, connection);
+      const duration = Date.now() - startTime;
+      
+      console.log(`[${new Date().toISOString()}] ${request.handler} completed in ${duration}ms`);
+      
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      console.error(`[${new Date().toISOString()}] ${request.handler} failed after ${duration}ms:`, error);
+      
+      throw error;
+    }
+  };
+}
+```
+
+## Performance Optimization
+
+### Caching
+```javascript
+const cache = new Map();
+
+wsx.on("expensive-operation", async (request, connection) => {
+  const cacheKey = `${request.handler}-${JSON.stringify(request.data)}`;
+  
+  // Check cache first
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+  
+  // Perform expensive operation
+  const result = await performExpensiveOperation(request.data);
+  
+  const response = {
+    id: request.id,
+    target: request.target,
+    html: `<div>Result: ${result}</div>`
+  };
+  
+  // Cache result for 5 minutes
+  cache.set(cacheKey, response);
+  setTimeout(() => cache.delete(cacheKey), 5 * 60 * 1000);
+  
+  return response;
+});
+```
+
+### Database Connection Pooling
+```javascript
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30000
+});
+
+wsx.on("database-query", async (request, connection) => {
+  const client = await pool.connect();
+  
+  try {
+    const result = await client.query('SELECT * FROM users WHERE id = $1', [request.data.id]);
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>User: ${result.rows[0]?.name || 'Not found'}</div>`
+    };
+  } finally {
+    client.release();
+  }
+});
+```
+
+## Testing Handlers
+
+### Unit Tests
+```javascript
+// handler-tests.js
+import { jest } from '@jest/globals';
+
+describe('WSX Handlers', () => {
+  test('should handle user creation', async () => {
+    const mockRequest = {
+      id: 'test-id',
+      handler: 'create-user',
+      target: '#result',
+      data: { username: 'testuser', email: 'test@example.com' }
+    };
+    
+    const mockConnection = {
+      id: 'conn-1',
+      sessionData: {}
+    };
+    
+    const response = await handlers['create-user'](mockRequest, mockConnection);
+    
+    expect(response.id).toBe('test-id');
+    expect(response.html).toContain('testuser');
+  });
+  
+  test('should require authentication', async () => {
+    const mockRequest = {
+      id: 'test-id',
+      handler: 'protected-action',
+      target: '#result',
+      data: {}
+    };
+    
+    const mockConnection = {
+      id: 'conn-1',
+      sessionData: {} // No user
+    };
+    
+    const response = await handlers['protected-action'](mockRequest, mockConnection);
+    
+    expect(response.html).toContain('Authentication required');
+  });
+});
+```
+
+### Integration Tests
+```javascript
+describe('Handler Integration', () => {
+  test('should update database and return response', async () => {
+    const wsx = createTestWSXServer();
+    
+    wsx.on('update-profile', async (request, connection) => {
+      await User.update(request.data, { where: { id: connection.sessionData.user.id } });
+      
+      return {
+        id: request.id,
+        target: request.target,
+        html: '<div>Profile updated</div>'
+      };
+    });
+    
+    const response = await wsx.handleRequest({
+      id: 'test-id',
+      handler: 'update-profile',
+      target: '#result',
+      data: { name: 'New Name' }
+    }, mockConnection);
+    
+    expect(response.html).toContain('Profile updated');
+    
+    // Verify database was updated
+    const user = await User.findByPk(mockConnection.sessionData.user.id);
+    expect(user.name).toBe('New Name');
+  });
+});
+```
+
+## Best Practices
+
+1. **Always Return Responses**: Handlers should return a response object
+2. **Handle Errors Gracefully**: Use try-catch blocks and provide user-friendly error messages
+3. **Validate Input**: Check and validate all incoming data
+4. **Use Session Data**: Store connection-specific state in `sessionData`
+5. **Keep Handlers Focused**: Each handler should handle one specific action
+6. **Implement Security**: Check permissions and authenticate users
+7. **Log Appropriately**: Log errors and important events for debugging
+8. **Test Thoroughly**: Write unit and integration tests for handlers
+
+## Next Steps
+
+- Learn about [Server Broadcasting](/server/broadcasting) for multi-client updates
+- Explore [Server Middleware](/server/middleware) for request processing
+- Understand [Out-of-Band Updates](/concepts/oob-updates) for complex responses

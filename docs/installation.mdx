@@ -1,0 +1,287 @@
+---
+title: Installation
+description: "Install WSX in your project"
+---
+
+## Package Overview
+
+WSX is organized as a monorepo with separate packages for different use cases:
+
+- **@wsx/core**: Core WSX server functionality (required)
+- **@wsx/express**: Express.js adapter
+- **@wsx/hono**: Hono framework adapter
+- **@wsx/client**: Client-side JavaScript library
+
+## Prerequisites
+
+- Node.js 18 or later
+- npm, yarn, or pnpm
+
+## Server Installation
+
+### Express.js
+
+For Express.js applications:
+
+<CodeGroup>
+
+```bash npm
+npm install @wsx/core @wsx/express
+```
+
+```bash yarn
+yarn add @wsx/core @wsx/express
+```
+
+```bash pnpm
+pnpm add @wsx/core @wsx/express
+```
+
+</CodeGroup>
+
+### Hono
+
+For Hono applications (including Cloudflare Workers):
+
+<CodeGroup>
+
+```bash npm
+npm install @wsx/core @wsx/hono
+```
+
+```bash yarn
+yarn add @wsx/core @wsx/hono
+```
+
+```bash pnpm
+pnpm add @wsx/core @wsx/hono
+```
+
+</CodeGroup>
+
+### Core Only
+
+If you want to create a custom adapter:
+
+<CodeGroup>
+
+```bash npm
+npm install @wsx/core
+```
+
+```bash yarn
+yarn add @wsx/core
+```
+
+```bash pnpm
+pnpm add @wsx/core
+```
+
+</CodeGroup>
+
+## Client Installation
+
+### Option 1: Download from Repository
+
+Download the client library from the [GitHub repository](https://github.com/stukennedy/wsx/blob/main/packages/client/wsx.js) and include it in your HTML:
+
+```html
+<script src="/path/to/wsx.js"></script>
+```
+
+### Option 2: Copy from node_modules
+
+If you've installed the server packages, you can copy the client from node_modules:
+
+```bash
+cp node_modules/@wsx/client/wsx.js public/wsx.js
+```
+
+### Option 3: CDN (Coming Soon)
+
+We're working on CDN distribution. For now, use the download or copy methods above.
+
+## TypeScript Support
+
+WSX is written in TypeScript and includes full type definitions. No additional @types packages are needed.
+
+```typescript
+import { WSXServer, WSXRequest, WSXResponse } from "@wsx/core";
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer();
+
+wsx.on("my-handler", async (request: WSXRequest, connection) => {
+  const response: WSXResponse = {
+    id: request.id,
+    target: request.target,
+    html: "<div>Hello TypeScript!</div>",
+  };
+  return response;
+});
+```
+
+## Framework-Specific Setup
+
+### Express.js
+
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+import express from "express";
+
+const wsx = createExpressWSXServer();
+const app = wsx.getApp();
+
+// Your Express middleware and routes
+app.use(express.static("public"));
+
+// WSX handlers
+wsx.on("my-handler", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: "<div>Hello from Express!</div>",
+  };
+});
+
+const server = app.listen(3000, () => {
+  console.log("Server running on port 3000");
+});
+```
+
+### Hono
+
+```javascript
+import { createHonoWSXServer } from "@wsx/hono";
+
+const wsx = createHonoWSXServer();
+const app = wsx.getApp();
+
+// Your Hono routes
+app.get("/", (c) => c.html("<h1>Hello Hono!</h1>"));
+
+// WSX handlers
+wsx.on("my-handler", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: "<div>Hello from Hono!</div>",
+  };
+});
+
+export default {
+  fetch: app.fetch,
+};
+```
+
+### Cloudflare Workers
+
+WSX works great with Cloudflare Workers using the Hono adapter:
+
+```javascript
+import { createHonoWSXServer } from "@wsx/hono";
+
+const wsx = createHonoWSXServer();
+const app = wsx.getApp();
+
+// Your worker logic
+wsx.on("worker-handler", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: "<div>Hello from Cloudflare Workers!</div>",
+  };
+});
+
+export default {
+  fetch: app.fetch,
+};
+```
+
+## Verification
+
+To verify your installation is working:
+
+1. **Server**: Check that you can import and create a WSX server:
+
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+const wsx = createExpressWSXServer();
+console.log("WSX server created successfully");
+```
+
+2. **Client**: Check that the client library loads without errors:
+
+```html
+<script src="/wsx.js"></script>
+<script>
+  console.log("WSX client loaded:", typeof WSX !== "undefined");
+</script>
+```
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="Module not found errors">
+    Make sure you've installed the correct packages for your framework: -
+    Express: `@wsx/core` and `@wsx/express` - Hono: `@wsx/core` and `@wsx/hono`
+    - Custom: `@wsx/core` only
+  </Accordion>
+
+  <Accordion title="TypeScript compilation errors">
+    Ensure your TypeScript configuration includes the node_modules directory and
+    that you're using TypeScript 4.5 or later.
+  </Accordion>
+
+  <Accordion title="Client script not loading">
+    Verify that the wsx.js file is in your public directory and accessible via
+    HTTP. Check your server's static file serving configuration.
+  </Accordion>
+
+  <Accordion title="WebSocket connection issues">
+    If you're using a reverse proxy (nginx, Apache), make sure it's configured
+    to handle WebSocket upgrades. See our [deployment
+    guide](/advanced/deployment) for details.
+  </Accordion>
+</AccordionGroup>
+
+## Development vs Production
+
+### Development
+
+For development, you can use the debug mode:
+
+```html
+<div wx-config='{"url": "ws://localhost:3000/ws", "debug": true}'>
+  <!-- Your content -->
+</div>
+```
+
+### Production
+
+For production, disable debug mode and use secure WebSocket connections:
+
+```html
+<div wx-config='{"url": "wss://your-domain.com/ws", "debug": false}'>
+  <!-- Your content -->
+</div>
+```
+
+## Next Steps
+
+Now that you have WSX installed, check out:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Build your first WSX application
+  </Card>
+  <Card title="Architecture" icon="building" href="/concepts/architecture">
+    Understand how WSX works
+  </Card>
+  <Card title="Examples" icon="code" href="/examples/chat">
+    Explore real-world examples
+  </Card>
+  <Card title="API Reference" icon="book" href="/api-reference/server">
+    Detailed API documentation
+  </Card>
+</CardGroup>

@@ -1,0 +1,635 @@
+---
+title: "Client Configuration"
+description: "Advanced configuration options for the WSX client"
+---
+
+# Client Configuration
+
+WSX provides extensive configuration options to customize client behavior, optimize performance, and integrate with your application architecture.
+
+## Basic Configuration
+
+### HTML Configuration
+Configure WSX using the `wx-config` attribute:
+
+```html
+<div wx-config='{
+  "url": "ws://localhost:3000/ws",
+  "debug": false,
+  "reconnectInterval": 3000,
+  "maxReconnectAttempts": 5,
+  "timeout": 10000,
+  "autoConnect": true
+}'>
+  <!-- WSX-enabled content -->
+</div>
+```
+
+### JavaScript Configuration
+Configure WSX programmatically:
+
+```javascript
+const wsx = new WSX({
+  url: "ws://localhost:3000/ws",
+  debug: true,
+  reconnectInterval: 2000,
+  maxReconnectAttempts: 10,
+  timeout: 15000,
+  autoConnect: false
+});
+```
+
+## Configuration Options
+
+### Connection Settings
+
+#### url (required)
+WebSocket server URL:
+
+```javascript
+{
+  url: "ws://localhost:3000/ws"          // Development
+  url: "wss://api.example.com/ws"        // Production
+  url: "wss://api.example.com/ws?token=abc" // With auth
+}
+```
+
+#### autoConnect
+Automatically connect on initialization:
+
+```javascript
+{
+  autoConnect: true,  // Connect immediately (default)
+  autoConnect: false  // Manual connection required
+}
+```
+
+#### reconnectInterval
+Time between reconnection attempts (in milliseconds):
+
+```javascript
+{
+  reconnectInterval: 3000,  // 3 seconds (default)
+  reconnectInterval: 1000,  // 1 second
+  reconnectInterval: 10000  // 10 seconds
+}
+```
+
+#### maxReconnectAttempts
+Maximum number of reconnection attempts:
+
+```javascript
+{
+  maxReconnectAttempts: 5,  // 5 attempts (default)
+  maxReconnectAttempts: 0,  // No reconnection
+  maxReconnectAttempts: -1  // Infinite attempts
+}
+```
+
+### Request Settings
+
+#### timeout
+Request timeout in milliseconds:
+
+```javascript
+{
+  timeout: 10000,  // 10 seconds (default)
+  timeout: 5000,   // 5 seconds
+  timeout: 30000   // 30 seconds
+}
+```
+
+#### retryAttempts
+Number of retry attempts for failed requests:
+
+```javascript
+{
+  retryAttempts: 3,  // 3 retries (default)
+  retryAttempts: 0,  // No retries
+  retryAttempts: 5   // 5 retries
+}
+```
+
+#### retryDelay
+Delay between retry attempts:
+
+```javascript
+{
+  retryDelay: 1000,  // 1 second (default)
+  retryDelay: 2000,  // 2 seconds
+  retryDelay: 500    // 500ms
+}
+```
+
+### Debug and Logging
+
+#### debug
+Enable debug logging:
+
+```javascript
+{
+  debug: false,  // Disabled (default)
+  debug: true,   // Enabled
+  debug: "verbose" // Verbose logging
+}
+```
+
+#### logger
+Custom logger function:
+
+```javascript
+{
+  logger: console.log,                    // Use console.log
+  logger: (level, message, data) => {     // Custom logger
+    if (level === 'error') {
+      console.error(message, data);
+    }
+  }
+}
+```
+
+### Performance Settings
+
+#### throttleInterval
+Default throttle interval for triggers:
+
+```javascript
+{
+  throttleInterval: 300,  // 300ms (default)
+  throttleInterval: 100,  // 100ms
+  throttleInterval: 500   // 500ms
+}
+```
+
+#### debounceInterval
+Default debounce interval for triggers:
+
+```javascript
+{
+  debounceInterval: 300,  // 300ms (default)
+  debounceInterval: 500,  // 500ms
+  debounceInterval: 1000  // 1 second
+}
+```
+
+#### maxPendingRequests
+Maximum number of pending requests:
+
+```javascript
+{
+  maxPendingRequests: 10,  // 10 requests (default)
+  maxPendingRequests: 5,   // 5 requests
+  maxPendingRequests: 20   // 20 requests
+}
+```
+
+## Advanced Configuration
+
+### Custom Headers
+Add custom headers to WebSocket connection:
+
+```javascript
+{
+  headers: {
+    'Authorization': 'Bearer token123',
+    'X-Client-Version': '1.0.0',
+    'X-User-Agent': 'WSX Client'
+  }
+}
+```
+
+### Request Interceptors
+Intercept requests before sending:
+
+```javascript
+{
+  requestInterceptor: (request) => {
+    // Add authentication token
+    request.headers = request.headers || {};
+    request.headers['Authorization'] = getAuthToken();
+    
+    // Add timestamp
+    request.timestamp = Date.now();
+    
+    return request;
+  }
+}
+```
+
+### Response Interceptors
+Intercept responses before processing:
+
+```javascript
+{
+  responseInterceptor: (response) => {
+    // Log response time
+    const duration = Date.now() - response.timestamp;
+    console.log(`Request took ${duration}ms`);
+    
+    // Handle global errors
+    if (response.error) {
+      showGlobalError(response.error);
+    }
+    
+    return response;
+  }
+}
+```
+
+### Custom WebSocket Options
+Pass options to WebSocket constructor:
+
+```javascript
+{
+  websocketOptions: {
+    protocols: ['wsx-protocol'],
+    perMessageDeflate: true,
+    maxPayload: 1024 * 1024  // 1MB
+  }
+}
+```
+
+## Environment-Specific Configuration
+
+### Development Configuration
+```javascript
+const devConfig = {
+  url: "ws://localhost:3000/ws",
+  debug: true,
+  reconnectInterval: 1000,
+  maxReconnectAttempts: 10,
+  timeout: 5000,
+  logger: console.log
+};
+```
+
+### Production Configuration
+```javascript
+const prodConfig = {
+  url: "wss://api.example.com/ws",
+  debug: false,
+  reconnectInterval: 5000,
+  maxReconnectAttempts: 3,
+  timeout: 15000,
+  logger: (level, message, data) => {
+    if (level === 'error') {
+      analytics.track('wsx_error', { message, data });
+    }
+  }
+};
+```
+
+### Dynamic Configuration
+```javascript
+function getConfig() {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const baseConfig = {
+    debug: !isProduction,
+    reconnectInterval: isProduction ? 5000 : 1000,
+    maxReconnectAttempts: isProduction ? 3 : 10
+  };
+  
+  if (isProduction) {
+    return {
+      ...baseConfig,
+      url: "wss://api.example.com/ws",
+      timeout: 15000
+    };
+  } else {
+    return {
+      ...baseConfig,
+      url: "ws://localhost:3000/ws",
+      timeout: 5000
+    };
+  }
+}
+
+const wsx = new WSX(getConfig());
+```
+
+## Security Configuration
+
+### Authentication
+```javascript
+{
+  url: "wss://api.example.com/ws",
+  headers: {
+    'Authorization': `Bearer ${getAuthToken()}`
+  },
+  requestInterceptor: (request) => {
+    // Refresh token if needed
+    if (isTokenExpired()) {
+      refreshAuthToken();
+    }
+    return request;
+  }
+}
+```
+
+### CORS Configuration
+```javascript
+{
+  url: "wss://api.example.com/ws",
+  headers: {
+    'Origin': 'https://myapp.com'
+  },
+  websocketOptions: {
+    origin: 'https://myapp.com'
+  }
+}
+```
+
+### Content Security Policy
+```javascript
+{
+  // Ensure WebSocket URL is allowed in CSP
+  url: "wss://api.example.com/ws",
+  
+  // Validate responses
+  responseInterceptor: (response) => {
+    if (!isValidResponse(response)) {
+      throw new Error('Invalid response format');
+    }
+    return response;
+  }
+}
+```
+
+## Performance Optimization
+
+### Connection Pooling
+```javascript
+{
+  // Enable connection pooling
+  poolSize: 3,
+  poolTimeout: 30000,
+  
+  // Load balancing
+  urls: [
+    "wss://api1.example.com/ws",
+    "wss://api2.example.com/ws",
+    "wss://api3.example.com/ws"
+  ],
+  loadBalancer: 'round-robin' // or 'random', 'sticky'
+}
+```
+
+### Compression
+```javascript
+{
+  // Enable compression
+  compression: true,
+  compressionOptions: {
+    threshold: 1024,      // Compress messages > 1KB
+    concurrencyLimit: 10, // Max concurrent compressions
+    windowBits: 15,       // Compression window size
+    memLevel: 8          // Memory level
+  }
+}
+```
+
+### Batching
+```javascript
+{
+  // Batch multiple requests
+  batching: true,
+  batchSize: 10,        // Max requests per batch
+  batchTimeout: 100,    // Max wait time (ms)
+  
+  // Prioritize requests
+  priorityQueue: true,
+  maxPriority: 10
+}
+```
+
+## Error Handling Configuration
+
+### Error Retry Strategy
+```javascript
+{
+  retryStrategy: {
+    attempts: 3,
+    delay: 1000,
+    backoff: 'exponential', // or 'linear', 'fixed'
+    maxDelay: 10000,
+    jitter: true
+  }
+}
+```
+
+### Global Error Handler
+```javascript
+{
+  errorHandler: (error, context) => {
+    // Log error
+    console.error('WSX Error:', error);
+    
+    // Show user notification
+    if (error.type === 'connection') {
+      showNotification('Connection lost. Reconnecting...', 'warning');
+    } else if (error.type === 'request') {
+      showNotification('Request failed. Please try again.', 'error');
+    }
+    
+    // Track errors
+    analytics.track('wsx_error', {
+      type: error.type,
+      message: error.message,
+      context: context
+    });
+  }
+}
+```
+
+## Testing Configuration
+
+### Test Environment
+```javascript
+const testConfig = {
+  url: "ws://localhost:3001/ws",
+  debug: true,
+  timeout: 1000,
+  reconnectInterval: 100,
+  maxReconnectAttempts: 1,
+  
+  // Mock WebSocket for testing
+  WebSocket: MockWebSocket,
+  
+  // Disable real network calls
+  mockMode: true
+};
+```
+
+### Mock Configuration
+```javascript
+{
+  mockMode: true,
+  mockResponses: {
+    'test-action': {
+      delay: 100,
+      response: {
+        id: 'test-id',
+        target: '#test-target',
+        html: '<div>Test response</div>'
+      }
+    }
+  }
+}
+```
+
+## Framework Integration
+
+### React Integration
+```javascript
+// React hook for WSX configuration
+function useWSX(config) {
+  const [wsx, setWsx] = useState(null);
+  
+  useEffect(() => {
+    const wsxInstance = new WSX({
+      ...config,
+      logger: (level, message, data) => {
+        if (level === 'error') {
+          console.error(message, data);
+        }
+      }
+    });
+    
+    setWsx(wsxInstance);
+    
+    return () => {
+      wsxInstance.disconnect();
+    };
+  }, [config]);
+  
+  return wsx;
+}
+```
+
+### Vue Integration
+```javascript
+// Vue plugin for WSX
+const WSXPlugin = {
+  install(app, options) {
+    const wsx = new WSX(options);
+    
+    app.config.globalProperties.$wsx = wsx;
+    app.provide('wsx', wsx);
+  }
+};
+```
+
+### Angular Integration
+```typescript
+// Angular service for WSX
+@Injectable({
+  providedIn: 'root'
+})
+export class WSXService {
+  private wsx: WSX;
+  
+  constructor(@Inject('WSX_CONFIG') private config: WSXConfig) {
+    this.wsx = new WSX(this.config);
+  }
+  
+  getWSX(): WSX {
+    return this.wsx;
+  }
+}
+```
+
+## Configuration Validation
+
+### Schema Validation
+```javascript
+const configSchema = {
+  url: { type: 'string', required: true },
+  debug: { type: 'boolean', default: false },
+  timeout: { type: 'number', min: 1000, max: 60000 },
+  reconnectInterval: { type: 'number', min: 100 }
+};
+
+function validateConfig(config) {
+  // Validate configuration against schema
+  const errors = validate(config, configSchema);
+  if (errors.length > 0) {
+    throw new Error(`Invalid configuration: ${errors.join(', ')}`);
+  }
+  return config;
+}
+```
+
+### Runtime Validation
+```javascript
+{
+  // Validate configuration at runtime
+  validateConfig: true,
+  
+  // Custom validation function
+  configValidator: (config) => {
+    if (!config.url) {
+      throw new Error('URL is required');
+    }
+    
+    if (config.timeout < 1000) {
+      console.warn('Timeout less than 1s may cause issues');
+    }
+    
+    return config;
+  }
+}
+```
+
+## Best Practices
+
+1. **Environment-Specific**: Use different configurations for dev/prod
+2. **Security**: Don't expose sensitive data in client configuration
+3. **Performance**: Tune timeouts and intervals based on your use case
+4. **Error Handling**: Implement robust error handling and retry logic
+5. **Monitoring**: Add logging and metrics for production debugging
+6. **Testing**: Use mock configurations for testing
+7. **Validation**: Validate configuration to catch errors early
+
+## Common Configuration Patterns
+
+### High-Performance Configuration
+```javascript
+{
+  url: "wss://api.example.com/ws",
+  compression: true,
+  batching: true,
+  batchSize: 20,
+  throttleInterval: 100,
+  maxPendingRequests: 50
+}
+```
+
+### Reliability-First Configuration
+```javascript
+{
+  url: "wss://api.example.com/ws",
+  reconnectInterval: 2000,
+  maxReconnectAttempts: 10,
+  retryAttempts: 5,
+  retryDelay: 1000,
+  timeout: 30000
+}
+```
+
+### Development Configuration
+```javascript
+{
+  url: "ws://localhost:3000/ws",
+  debug: true,
+  logger: console.log,
+  reconnectInterval: 1000,
+  maxReconnectAttempts: -1,
+  timeout: 5000
+}
+```
+
+## Next Steps
+
+- Learn about [Server Setup](/server/setup) for backend configuration
+- Explore [Framework Integration](/frameworks) for specific implementations
+- Understand [Performance Optimization](/advanced/performance) for tuning

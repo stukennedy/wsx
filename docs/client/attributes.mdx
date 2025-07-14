@@ -1,0 +1,465 @@
+---
+title: "Client Attributes"
+description: "Understanding WSX client-side attributes for interactive elements"
+---
+
+# Client Attributes
+
+WSX uses HTML attributes to define interactive behavior in your web applications. These attributes control how elements trigger WebSocket requests and handle responses.
+
+## Core Attributes
+
+### wx-send
+Defines the action to send to the server when triggered:
+
+```html
+<!-- Send named action -->
+<button wx-send="update-content">Update Content</button>
+
+<!-- Send default action (uses trigger name) -->
+<button wx-send>Click Me</button>
+
+<!-- Send with element data -->
+<form wx-send="submit-form">
+  <input name="username" />
+  <button type="submit">Submit</button>
+</form>
+```
+
+### wx-target
+Specifies the element to update with the response:
+
+```html
+<!-- Target specific element -->
+<button wx-send="update" wx-target="#content">Update</button>
+
+<!-- Target parent element -->
+<button wx-send="update" wx-target="closest div">Update</button>
+
+<!-- Target multiple elements -->
+<button wx-send="update" wx-target="#content, #sidebar">Update</button>
+```
+
+### wx-trigger
+Defines when to send the request:
+
+```html
+<!-- Basic triggers -->
+<button wx-send="click-action" wx-trigger="click">Click</button>
+<input wx-send="input-action" wx-trigger="input" />
+<form wx-send="form-action" wx-trigger="submit">
+
+<!-- Advanced triggers -->
+<input wx-send="search" wx-trigger="input throttle:300ms" />
+<button wx-send="delayed" wx-trigger="click delay:1s">Delayed</button>
+<input wx-send="enter-search" wx-trigger="keyup[Enter]" />
+```
+
+## Content Attributes
+
+### wx-swap
+Controls how content is swapped:
+
+```html
+<!-- Basic swap types -->
+<div wx-swap="innerHTML">Replace content</div>
+<div wx-swap="outerHTML">Replace element</div>
+<div wx-swap="beforebegin">Insert before</div>
+<div wx-swap="afterbegin">Insert at start</div>
+<div wx-swap="beforeend">Insert at end</div>
+<div wx-swap="afterend">Insert after</div>
+
+<!-- With timing -->
+<div wx-swap="innerHTML swap:300ms settle:200ms">Animated swap</div>
+
+<!-- With effects -->
+<div wx-swap="innerHTML show:top scroll:smooth">Scroll to top</div>
+```
+
+### wx-config
+Configures WSX behavior for a container:
+
+```html
+<div wx-config='{
+  "url": "ws://localhost:3000/ws",
+  "debug": true,
+  "reconnectInterval": 2000,
+  "maxReconnectAttempts": 5
+}'>
+  <!-- WSX-enabled content -->
+</div>
+```
+
+## Data Attributes
+
+### Form Data
+WSX automatically captures form data:
+
+```html
+<form wx-send="submit-user" wx-target="#result">
+  <input name="username" value="john" />
+  <input name="email" value="john@example.com" />
+  <button type="submit">Submit</button>
+</form>
+```
+
+Sends:
+```javascript
+{
+  username: "john",
+  email: "john@example.com"
+}
+```
+
+### Custom Data
+Add custom data with `data-wx-*` attributes:
+
+```html
+<button 
+  wx-send="custom-action" 
+  wx-target="#result"
+  data-wx-user-id="123"
+  data-wx-action-type="primary"
+>
+  Custom Action
+</button>
+```
+
+Sends:
+```javascript
+{
+  userId: "123",
+  actionType: "primary"
+}
+```
+
+### Dynamic Data
+Use JavaScript to set dynamic data:
+
+```html
+<button id="dynamic-btn" wx-send="dynamic-action">Dynamic</button>
+
+<script>
+document.getElementById('dynamic-btn').addEventListener('click', (e) => {
+  e.target.setAttribute('data-wx-timestamp', Date.now());
+});
+</script>
+```
+
+## Advanced Attributes
+
+### wx-headers
+Add custom headers to requests:
+
+```html
+<button 
+  wx-send="secure-action"
+  wx-headers='{"Authorization": "Bearer token123"}'
+>
+  Secure Action
+</button>
+```
+
+### wx-validate
+Client-side validation before sending:
+
+```html
+<form wx-send="submit-form" wx-validate="checkForm">
+  <input name="email" type="email" required />
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+function checkForm(form) {
+  return form.querySelector('input[name="email"]').checkValidity();
+}
+</script>
+```
+
+### wx-confirm
+Show confirmation dialog:
+
+```html
+<button 
+  wx-send="delete-item" 
+  wx-confirm="Are you sure you want to delete this item?"
+>
+  Delete
+</button>
+```
+
+### wx-loading
+Show loading state during request:
+
+```html
+<button 
+  wx-send="slow-action"
+  wx-loading="Processing..."
+  wx-loading-class="loading"
+>
+  Slow Action
+</button>
+```
+
+## Conditional Attributes
+
+### wx-if
+Conditionally enable WSX behavior:
+
+```html
+<button 
+  wx-send="admin-action"
+  wx-if="user.isAdmin"
+>
+  Admin Action
+</button>
+```
+
+### wx-unless
+Conditionally disable WSX behavior:
+
+```html
+<button 
+  wx-send="user-action"
+  wx-unless="user.isGuest"
+>
+  User Action
+</button>
+```
+
+## Event Attributes
+
+### wx-on-*
+Handle WSX events:
+
+```html
+<button 
+  wx-send="my-action"
+  wx-on-before="showLoading"
+  wx-on-after="hideLoading"
+  wx-on-error="showError"
+>
+  Action
+</button>
+
+<script>
+function showLoading(event) {
+  console.log('Request starting');
+}
+
+function hideLoading(event) {
+  console.log('Request completed');
+}
+
+function showError(event) {
+  console.error('Request failed', event.detail);
+}
+</script>
+```
+
+## Multiple Actions
+
+### Different Triggers
+```html
+<input 
+  wx-send="search" 
+  wx-trigger="input throttle:300ms"
+  wx-send-enter="full-search"
+  wx-trigger-enter="keyup[Enter]"
+  wx-target="#results"
+/>
+```
+
+### Conditional Actions
+```html
+<button 
+  wx-send="primary-action"
+  wx-send-alt="secondary-action"
+  wx-trigger="click"
+  wx-trigger-alt="click[shiftKey]"
+>
+  Multi-Action Button
+</button>
+```
+
+## Real-World Examples
+
+### Search Interface
+```html
+<div class="search-container">
+  <input 
+    type="text" 
+    placeholder="Search..."
+    wx-send="search"
+    wx-target="#search-results"
+    wx-trigger="input throttle:300ms changed"
+    wx-loading-class="searching"
+  />
+  <div id="search-results"></div>
+</div>
+```
+
+### Auto-Save Form
+```html
+<form 
+  wx-send="auto-save"
+  wx-target="#save-status"
+  wx-trigger="input throttle:2s"
+  wx-on-after="showSaveStatus"
+>
+  <input name="title" placeholder="Title" />
+  <textarea name="content" placeholder="Content"></textarea>
+  <div id="save-status"></div>
+</form>
+```
+
+### Interactive List
+```html
+<div class="todo-list">
+  <form wx-send="add-todo" wx-target="#todo-items" wx-trigger="submit">
+    <input name="text" placeholder="Add todo..." />
+    <button type="submit">Add</button>
+  </form>
+  
+  <div id="todo-items">
+    <div class="todo-item">
+      <span>Existing todo</span>
+      <button 
+        wx-send="delete-todo"
+        wx-target="closest .todo-item"
+        wx-confirm="Delete this todo?"
+        data-wx-id="1"
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+### File Upload
+```html
+<form 
+  wx-send="upload-file"
+  wx-target="#upload-result"
+  wx-trigger="submit"
+  wx-loading="Uploading..."
+  enctype="multipart/form-data"
+>
+  <input type="file" name="file" accept="image/*" />
+  <button type="submit">Upload</button>
+  <div id="upload-result"></div>
+</form>
+```
+
+## Attribute Inheritance
+
+### Container Attributes
+Child elements inherit container attributes:
+
+```html
+<div wx-target="#global-result" wx-loading-class="loading">
+  <button wx-send="action1">Action 1</button>
+  <button wx-send="action2">Action 2</button>
+  <!-- Both buttons inherit wx-target and wx-loading-class -->
+</div>
+```
+
+### Override Inheritance
+```html
+<div wx-target="#global-result">
+  <button wx-send="action1">Uses #global-result</button>
+  <button wx-send="action2" wx-target="#specific-result">Uses #specific-result</button>
+</div>
+```
+
+## Dynamic Attributes
+
+### JavaScript Manipulation
+```javascript
+// Set attributes dynamically
+const button = document.querySelector('#my-button');
+button.setAttribute('wx-send', 'new-action');
+button.setAttribute('data-wx-context', 'updated');
+
+// Remove attributes
+button.removeAttribute('wx-confirm');
+
+// Toggle attributes
+if (user.isAdmin) {
+  button.setAttribute('wx-send', 'admin-action');
+} else {
+  button.setAttribute('wx-send', 'user-action');
+}
+```
+
+### Template Systems
+```html
+<!-- With template literals -->
+<button 
+  wx-send="user-action"
+  data-wx-user-id="${user.id}"
+  wx-target="#user-${user.id}"
+>
+  User Action
+</button>
+
+<!-- With frameworks -->
+<button 
+  wx-send="item-action"
+  :data-wx-item-id="item.id"
+  :wx-target="`#item-${item.id}`"
+>
+  Item Action
+</button>
+```
+
+## Best Practices
+
+1. **Use Semantic HTML**: Build on standard HTML elements and forms
+2. **Progressive Enhancement**: Ensure functionality works without JavaScript
+3. **Specific Targets**: Use specific selectors to avoid conflicts
+4. **Validate Data**: Use `wx-validate` for client-side validation
+5. **Handle Errors**: Use `wx-on-error` for error handling
+6. **Loading States**: Use `wx-loading` for better UX
+7. **Accessibility**: Ensure interactive elements are accessible
+
+## Common Patterns
+
+### Form Validation
+```html
+<form wx-send="validate-form" wx-validate="validateForm">
+  <input name="email" type="email" required />
+  <span class="error" id="email-error"></span>
+  <button type="submit">Submit</button>
+</form>
+```
+
+### Progressive Loading
+```html
+<div 
+  wx-send="load-more"
+  wx-trigger="scroll[bottom]"
+  wx-target="#content"
+  wx-loading="Loading more..."
+>
+  Scroll to load more
+</div>
+```
+
+### Real-time Updates
+```html
+<div 
+  wx-send="get-updates"
+  wx-trigger="interval:5s"
+  wx-target="#status"
+>
+  Auto-updating status
+</div>
+```
+
+## Next Steps
+
+- Learn about [Client Triggers](/client/triggers) for event handling
+- Explore [Client Events](/client/events) for response handling
+- Understand [Client Configuration](/client/configuration) for global settings

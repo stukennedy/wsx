@@ -1,0 +1,656 @@
+---
+title: "Server Adapters"
+description: "Understanding and creating WSX server adapters"
+---
+
+# Server Adapters
+
+Server adapters provide the interface between WSX and different web frameworks. They handle WebSocket connections, message routing, and framework-specific integration.
+
+## Built-in Adapters
+
+### Express Adapter
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer({
+  path: '/ws',
+  maxConnections: 1000
+});
+
+const app = wsx.getApp();
+
+// Add Express middleware
+app.use(express.json());
+app.use(express.static('public'));
+
+// Add WSX handlers
+wsx.on("test-action", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Hello from Express!</div>`
+  };
+});
+
+app.listen(3000);
+```
+
+### Hono Adapter
+```javascript
+import { createHonoWSXServer } from "@wsx/hono";
+
+const wsx = createHonoWSXServer({
+  path: '/ws'
+});
+
+const app = wsx.getApp();
+
+// Add Hono middleware
+app.use('*', async (c, next) => {
+  console.log(`${c.req.method} ${c.req.url}`);
+  await next();
+});
+
+// Add WSX handlers
+wsx.on("test-action", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Hello from Hono!</div>`
+  };
+});
+
+export default app;
+```
+
+## Adapter Interface
+
+### WSXServerAdapter Interface
+```typescript
+interface WSXServerAdapter {
+  // Setup WebSocket handling
+  setupWebSocket(
+    path: string,
+    onMessage: (data: string, connection: WSXConnection) => void
+  ): void;
+  
+  // Optional connection lifecycle hooks
+  onConnection?(connection: WSXConnection): void;
+  onDisconnection?(connection: WSXConnection): void;
+  
+  // Get the underlying framework app
+  getApp(): any;
+}
+```
+
+### WSXConnection Interface
+```typescript
+interface WSXConnection {
+  id: string;                    // Unique connection identifier
+  sessionData?: Record<string, any>; // Session storage
+  send(data: string): void;      // Send data to client
+  close(): void;                 // Close connection
+}
+```
+
+## Creating Custom Adapters
+
+### Basic Adapter Structure
+```javascript
+import { WSXServer } from "@wsx/core";
+import { v4 as uuidv4 } from 'uuid';
+
+class CustomFrameworkAdapter {
+  constructor(frameworkApp, options = {}) {
+    this.app = frameworkApp;
+    this.options = options;
+    this.connections = new Map();
+  }
+
+  setupWebSocket(path, onMessage) {
+    // Framework-specific WebSocket setup
+    this.app.ws(path, (ws, req) => {
+      const connection = this.createConnection(ws, req);
+      this.connections.set(connection.id, connection);
+
+      // Handle incoming messages
+      ws.on('message', (data) => {
+        try {
+          onMessage(data.toString(), connection);
+        } catch (error) {
+          console.error('Message handling error:', error);
+        }
+      });
+
+      // Handle connection close
+      ws.on('close', () => {
+        this.connections.delete(connection.id);
+        if (this.onDisconnection) {
+          this.onDisconnection(connection);
+        }
+      });
+
+      // Handle errors
+      ws.on('error', (error) => {
+        console.error('WebSocket error:', error);
+        this.connections.delete(connection.id);
+      });
+
+      // Call connection hook
+      if (this.onConnection) {
+        this.onConnection(connection);
+      }
+    });
+  }
+
+  createConnection(ws, req) {
+    return {
+      id: uuidv4(),
+      sessionData: {},
+      send: (data) => {
+        if (ws.readyState === ws.OPEN) {
+          ws.send(data);
+        }
+      },
+      close: () => {
+        ws.close();
+      },
+      // Additional connection properties
+      request: req,
+      ip: req.ip || req.connection.remoteAddress
+    };
+  }
+
+  onConnection(connection) {
+    console.log(`New connection: ${connection.id}`);
+  }
+
+  onDisconnection(connection) {
+    console.log(`Connection closed: ${connection.id}`);
+  }
+
+  getApp() {
+    return this.app;
+  }
+}
+
+// Usage
+function createCustomWSXServer(frameworkApp, options) {
+  const adapter = new CustomFrameworkAdapter(frameworkApp, options);
+  return new WSXServer(adapter);
+}
+```
+
+### Fastify Adapter Example
+```javascript
+import fastifyWebSocket from '@fastify/websocket';
+
+class FastifyAdapter {
+  constructor(fastifyInstance, options = {}) {
+    this.fastify = fastifyInstance;
+    this.options = options;
+    this.connections = new Map();
+    
+    // Register WebSocket plugin
+    this.fastify.register(fastifyWebSocket);
+  }
+
+  setupWebSocket(path, onMessage) {
+    this.fastify.register(async (fastify) => {
+      fastify.get(path, { websocket: true }, (connection, req) => {
+        const wsConnection = this.createConnection(connection.socket, req);
+        this.connections.set(wsConnection.id, wsConnection);
+
+        connection.socket.on('message', (message) => {
+          try {
+            onMessage(message.toString(), wsConnection);
+          } catch (error) {
+            console.error('Message handling error:', error);
+          }
+        });
+
+        connection.socket.on('close', () => {
+          this.connections.delete(wsConnection.id);
+          if (this.onDisconnection) {
+            this.onDisconnection(wsConnection);
+          }
+        });
+
+        if (this.onConnection) {
+          this.onConnection(wsConnection);
+        }
+      });
+    });
+  }
+
+  createConnection(socket, req) {
+    return {
+      id: uuidv4(),
+      sessionData: {},
+      send: (data) => {
+        if (socket.readyState === socket.OPEN) {
+          socket.send(data);
+        }
+      },
+      close: () => {
+        socket.close();
+      },
+      request: req,
+      ip: req.ip
+    };
+  }
+
+  getApp() {
+    return this.fastify;
+  }
+}
+
+// Usage
+async function createFastifyWSXServer(options = {}) {
+  const fastify = require('fastify')({ logger: true });
+  const adapter = new FastifyAdapter(fastify, options);
+  const wsx = new WSXServer(adapter);
+  
+  return { wsx, fastify };
+}
+```
+
+### Next.js Adapter Example
+```javascript
+import { Server } from 'socket.io';
+
+class NextJSAdapter {
+  constructor(server, options = {}) {
+    this.io = new Server(server, {
+      path: options.path || '/api/ws',
+      cors: options.cors || {
+        origin: '*',
+        methods: ['GET', 'POST']
+      }
+    });
+    this.connections = new Map();
+  }
+
+  setupWebSocket(path, onMessage) {
+    this.io.on('connection', (socket) => {
+      const connection = this.createConnection(socket);
+      this.connections.set(connection.id, connection);
+
+      // Handle WSX messages
+      socket.on('wsx-message', (data) => {
+        try {
+          onMessage(JSON.stringify(data), connection);
+        } catch (error) {
+          console.error('Message handling error:', error);
+        }
+      });
+
+      socket.on('disconnect', () => {
+        this.connections.delete(connection.id);
+        if (this.onDisconnection) {
+          this.onDisconnection(connection);
+        }
+      });
+
+      if (this.onConnection) {
+        this.onConnection(connection);
+      }
+    });
+  }
+
+  createConnection(socket) {
+    return {
+      id: socket.id,
+      sessionData: {},
+      send: (data) => {
+        socket.emit('wsx-response', JSON.parse(data));
+      },
+      close: () => {
+        socket.disconnect();
+      },
+      socket: socket
+    };
+  }
+
+  getApp() {
+    return this.io;
+  }
+}
+```
+
+## Adapter Features
+
+### Authentication Integration
+```javascript
+class AuthenticatedAdapter {
+  constructor(app, options = {}) {
+    this.app = app;
+    this.options = options;
+    this.connections = new Map();
+  }
+
+  setupWebSocket(path, onMessage) {
+    this.app.ws(path, (ws, req) => {
+      // Authenticate connection
+      const token = this.extractToken(req);
+      
+      if (!token || !this.validateToken(token)) {
+        ws.close(1008, 'Authentication required');
+        return;
+      }
+
+      const user = this.getUserFromToken(token);
+      const connection = this.createConnection(ws, req, user);
+      
+      this.connections.set(connection.id, connection);
+
+      ws.on('message', (data) => {
+        onMessage(data.toString(), connection);
+      });
+
+      ws.on('close', () => {
+        this.connections.delete(connection.id);
+      });
+    });
+  }
+
+  extractToken(req) {
+    const authHeader = req.headers.authorization;
+    return authHeader?.startsWith('Bearer ') 
+      ? authHeader.slice(7) 
+      : req.query.token;
+  }
+
+  validateToken(token) {
+    try {
+      // Validate JWT or session token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      return decoded;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  getUserFromToken(token) {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return decoded.user;
+  }
+
+  createConnection(ws, req, user) {
+    return {
+      id: uuidv4(),
+      sessionData: { user },
+      send: (data) => ws.send(data),
+      close: () => ws.close(),
+      user: user,
+      authenticated: true
+    };
+  }
+
+  getApp() {
+    return this.app;
+  }
+}
+```
+
+### Rate Limiting Integration
+```javascript
+class RateLimitedAdapter {
+  constructor(app, options = {}) {
+    this.app = app;
+    this.options = options;
+    this.connections = new Map();
+    this.rateLimits = new Map(); // IP -> { count, lastReset }
+    
+    this.maxRequests = options.maxRequests || 100;
+    this.windowMs = options.windowMs || 60000; // 1 minute
+  }
+
+  setupWebSocket(path, onMessage) {
+    this.app.ws(path, (ws, req) => {
+      const connection = this.createConnection(ws, req);
+      this.connections.set(connection.id, connection);
+
+      ws.on('message', (data) => {
+        if (!this.checkRateLimit(connection.ip)) {
+          ws.send(JSON.stringify({
+            error: 'Rate limit exceeded'
+          }));
+          return;
+        }
+
+        onMessage(data.toString(), connection);
+      });
+
+      ws.on('close', () => {
+        this.connections.delete(connection.id);
+      });
+    });
+  }
+
+  checkRateLimit(ip) {
+    const now = Date.now();
+    const limit = this.rateLimits.get(ip) || { count: 0, lastReset: now };
+
+    // Reset if window has passed
+    if (now - limit.lastReset > this.windowMs) {
+      limit.count = 0;
+      limit.lastReset = now;
+    }
+
+    limit.count++;
+    this.rateLimits.set(ip, limit);
+
+    return limit.count <= this.maxRequests;
+  }
+
+  createConnection(ws, req) {
+    return {
+      id: uuidv4(),
+      sessionData: {},
+      send: (data) => ws.send(data),
+      close: () => ws.close(),
+      ip: req.ip || req.connection.remoteAddress
+    };
+  }
+
+  getApp() {
+    return this.app;
+  }
+}
+```
+
+### Compression Support
+```javascript
+class CompressedAdapter {
+  constructor(app, options = {}) {
+    this.app = app;
+    this.options = options;
+    this.connections = new Map();
+    this.compressionThreshold = options.compressionThreshold || 1024;
+  }
+
+  setupWebSocket(path, onMessage) {
+    this.app.ws(path, {
+      perMessageDeflate: {
+        threshold: this.compressionThreshold,
+        concurrencyLimit: 10,
+        windowBits: 13,
+        memLevel: 7
+      }
+    }, (ws, req) => {
+      const connection = this.createConnection(ws, req);
+      this.connections.set(connection.id, connection);
+
+      ws.on('message', (data) => {
+        onMessage(data.toString(), connection);
+      });
+
+      ws.on('close', () => {
+        this.connections.delete(connection.id);
+      });
+    });
+  }
+
+  createConnection(ws, req) {
+    return {
+      id: uuidv4(),
+      sessionData: {},
+      send: (data) => {
+        // Automatic compression based on size
+        ws.send(data);
+      },
+      close: () => ws.close()
+    };
+  }
+
+  getApp() {
+    return this.app;
+  }
+}
+```
+
+## Testing Adapters
+
+### Adapter Testing Framework
+```javascript
+import { jest } from '@jest/globals';
+
+class MockWebSocket {
+  constructor() {
+    this.readyState = 1; // OPEN
+    this.listeners = {};
+  }
+
+  on(event, listener) {
+    if (!this.listeners[event]) {
+      this.listeners[event] = [];
+    }
+    this.listeners[event].push(listener);
+  }
+
+  send(data) {
+    this.lastSent = data;
+  }
+
+  close() {
+    this.readyState = 3; // CLOSED
+    this.emit('close');
+  }
+
+  emit(event, ...args) {
+    if (this.listeners[event]) {
+      this.listeners[event].forEach(listener => {
+        listener(...args);
+      });
+    }
+  }
+}
+
+class TestAdapter {
+  constructor() {
+    this.connections = new Map();
+    this.mockWs = new MockWebSocket();
+  }
+
+  setupWebSocket(path, onMessage) {
+    this.onMessage = onMessage;
+    this.path = path;
+  }
+
+  simulateConnection() {
+    const connection = {
+      id: 'test-connection',
+      sessionData: {},
+      send: jest.fn(),
+      close: jest.fn()
+    };
+
+    this.connections.set(connection.id, connection);
+    return connection;
+  }
+
+  simulateMessage(message, connection) {
+    if (this.onMessage) {
+      this.onMessage(JSON.stringify(message), connection);
+    }
+  }
+
+  getApp() {
+    return {
+      ws: jest.fn()
+    };
+  }
+}
+
+// Test usage
+describe('WSX Adapter', () => {
+  let adapter;
+  let wsx;
+
+  beforeEach(() => {
+    adapter = new TestAdapter();
+    wsx = new WSXServer(adapter);
+  });
+
+  test('should handle messages', async () => {
+    const connection = adapter.simulateConnection();
+    
+    wsx.on('test-action', async (request, conn) => {
+      return {
+        id: request.id,
+        target: request.target,
+        html: '<div>Test response</div>'
+      };
+    });
+
+    adapter.simulateMessage({
+      id: 'test-id',
+      handler: 'test-action',
+      target: '#test',
+      data: {}
+    }, connection);
+
+    expect(connection.send).toHaveBeenCalled();
+  });
+});
+```
+
+## Best Practices
+
+1. **Error Handling**: Implement robust error handling for connection issues
+2. **Security**: Validate and authenticate connections appropriately
+3. **Performance**: Optimize for your framework's characteristics
+4. **Compatibility**: Ensure compatibility with framework middleware
+5. **Testing**: Write comprehensive tests for adapter functionality
+6. **Documentation**: Document adapter-specific configuration options
+7. **Monitoring**: Add logging and metrics for adapter performance
+
+## Framework-Specific Considerations
+
+### Express
+- Use `express-ws` or similar WebSocket middleware
+- Integrate with Express middleware stack
+- Handle HTTP upgrade requests properly
+
+### Hono
+- Use Hono's WebSocket support
+- Consider edge runtime compatibility
+- Optimize for serverless deployment
+
+### Fastify
+- Use `@fastify/websocket` plugin
+- Leverage Fastify's plugin system
+- Maintain Fastify's performance characteristics
+
+### Next.js
+- Use Socket.IO for broader compatibility
+- Handle API routes integration
+- Consider serverless limitations
+
+## Next Steps
+
+- Learn about [Server Middleware](/server/middleware) for request processing
+- Explore [Framework Integration](/frameworks) for specific implementations
+- Understand [Performance Optimization](/advanced/performance) for scaling

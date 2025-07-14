@@ -1,0 +1,674 @@
+---
+title: Real-time Chat Application
+description: "Build a complete real-time chat application with WSX"
+---
+
+## Overview
+
+This example demonstrates how to build a real-time chat application using WSX. We'll cover user authentication, message broadcasting, typing indicators, and user presence.
+
+## Features
+
+- Real-time messaging
+- User authentication
+- Typing indicators
+- User presence (online/offline)
+- Message history
+- Responsive design
+
+## Server Implementation
+
+### Basic Setup
+
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+import express from "express";
+import path from "path";
+
+const wsx = createExpressWSXServer();
+const app = wsx.getApp();
+
+// In-memory storage (use a database in production)
+const messages = [];
+const users = new Map();
+const typingUsers = new Map();
+
+app.use(express.static(path.join(__dirname, "public")));
+app.use(express.json());
+```
+
+### User Management
+
+```javascript
+// User login
+wsx.on("login", async (request, connection) => {
+  const { username } = request.data;
+
+  if (!username) {
+    return {
+      id: request.id,
+      target: "#error",
+      html: '<div class="error">Username is required</div>',
+    };
+  }
+
+  // Store user info
+  users.set(connection.id, {
+    id: connection.id,
+    username,
+    joinedAt: new Date(),
+  });
+
+  connection.sessionData = { username };
+
+  // Broadcast user joined
+  wsx.broadcast("#user-list", generateUserList());
+  wsx.broadcast(
+    "#messages",
+    `
+    <div class="system-message">
+      <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+      ${username} joined the chat
+    </div>
+  `,
+    "afterbegin"
+  );
+
+  return {
+    id: request.id,
+    target: "#login-form",
+    html: "",
+    swap: "delete",
+    oob: [
+      {
+        target: "#chat-container",
+        html: generateChatInterface(username),
+        swap: "innerHTML",
+      },
+      {
+        target: "#message-history",
+        html: generateMessageHistory(),
+        swap: "innerHTML",
+      },
+    ],
+  };
+});
+
+// Handle disconnection
+wsx.on("disconnect", async (request, connection) => {
+  const user = users.get(connection.id);
+  if (user) {
+    users.delete(connection.id);
+    typingUsers.delete(connection.id);
+
+    // Broadcast user left
+    wsx.broadcast("#user-list", generateUserList());
+    wsx.broadcast(
+      "#messages",
+      `
+      <div class="system-message">
+        <span class="timestamp">${new Date().toLocaleTimeString()}</span>
+        ${user.username} left the chat
+      </div>
+    `,
+      "afterbegin"
+    );
+  }
+});
+```
+
+### Message Handling
+
+```javascript
+// Send message
+wsx.on("send-message", async (request, connection) => {
+  const { message } = request.data;
+  const user = users.get(connection.id);
+
+  if (!user || !message.trim()) {
+    return;
+  }
+
+  const messageObj = {
+    id: Date.now(),
+    username: user.username,
+    message: message.trim(),
+    timestamp: new Date(),
+  };
+
+  messages.push(messageObj);
+
+  // Clear typing indicator for this user
+  typingUsers.delete(connection.id);
+
+  // Broadcast message to all users
+  wsx.broadcast(
+    "#messages",
+    `
+    <div class="message">
+      <div class="message-header">
+        <span class="username">${messageObj.username}</span>
+        <span class="timestamp">${messageObj.timestamp.toLocaleTimeString()}</span>
+      </div>
+      <div class="message-content">${escapeHtml(messageObj.message)}</div>
+    </div>
+  `,
+    "afterbegin"
+  );
+
+  // Update typing indicators
+  wsx.broadcast("#typing-indicators", generateTypingIndicators());
+
+  // Clear the input for the sender
+  return {
+    id: request.id,
+    target: "#message-input",
+    html: "",
+    swap: "innerHTML",
+  };
+});
+
+// Typing indicator
+wsx.on("typing", async (request, connection) => {
+  const user = users.get(connection.id);
+  if (!user) return;
+
+  const { isTyping } = request.data;
+
+  if (isTyping) {
+    typingUsers.set(connection.id, user.username);
+  } else {
+    typingUsers.delete(connection.id);
+  }
+
+  // Broadcast typing indicators to all users
+  wsx.broadcast("#typing-indicators", generateTypingIndicators());
+});
+```
+
+### Helper Functions
+
+```javascript
+function generateUserList() {
+  const userList = Array.from(users.values());
+  return `
+    <h3>Online Users (${userList.length})</h3>
+    <ul>
+      ${userList
+        .map(
+          (user) => `
+        <li>
+          <span class="user-status online"></span>
+          ${user.username}
+        </li>
+      `
+        )
+        .join("")}
+    </ul>
+  `;
+}
+
+function generateMessageHistory() {
+  return messages
+    .slice(-50)
+    .reverse()
+    .map(
+      (msg) => `
+    <div class="message">
+      <div class="message-header">
+        <span class="username">${msg.username}</span>
+        <span class="timestamp">${msg.timestamp.toLocaleTimeString()}</span>
+      </div>
+      <div class="message-content">${escapeHtml(msg.message)}</div>
+    </div>
+  `
+    )
+    .join("");
+}
+
+function generateTypingIndicators() {
+  const typing = Array.from(typingUsers.values());
+  if (typing.length === 0) return "";
+
+  return `
+    <div class="typing-indicator">
+      ${typing.join(", ")} ${typing.length === 1 ? "is" : "are"} typing...
+    </div>
+  `;
+}
+
+function generateChatInterface(username) {
+  return `
+    <div class="chat-header">
+      <h2>Chat Room</h2>
+      <span class="current-user">Logged in as: ${username}</span>
+    </div>
+    <div class="chat-body">
+      <div class="messages-container">
+        <div id="messages"></div>
+        <div id="typing-indicators"></div>
+      </div>
+      <div class="message-input-container">
+        <form wx-send="send-message" wx-target="#message-input">
+          <input 
+            id="message-input"
+            name="message" 
+            type="text" 
+            placeholder="Type a message..."
+            wx-send="typing"
+            wx-target="#typing-indicators"
+            wx-trigger="input throttle:500ms"
+            wx-data='{"isTyping": true}'
+            autocomplete="off"
+          >
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+```
+
+## Client Implementation
+
+### HTML Structure
+
+```html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WSX Chat Room</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/wsx.js"></script>
+    <style>
+      .chat-container {
+        height: 80vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem;
+        background: #f9fafb;
+      }
+
+      .message {
+        margin-bottom: 1rem;
+        padding: 0.75rem;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .message-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+      }
+
+      .username {
+        font-weight: bold;
+        color: #3b82f6;
+      }
+
+      .timestamp {
+        color: #6b7280;
+        font-size: 0.875rem;
+      }
+
+      .system-message {
+        text-align: center;
+        color: #6b7280;
+        font-style: italic;
+        margin: 0.5rem 0;
+      }
+
+      .typing-indicator {
+        color: #6b7280;
+        font-style: italic;
+        padding: 0.5rem;
+      }
+
+      .user-status {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+      }
+
+      .user-status.online {
+        background: #10b981;
+      }
+
+      .message-input-container {
+        padding: 1rem;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .message-input-container form {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .message-input-container input {
+        flex: 1;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+      }
+
+      .message-input-container button {
+        padding: 0.75rem 1.5rem;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 0.375rem;
+        cursor: pointer;
+      }
+
+      .message-input-container button:hover {
+        background: #2563eb;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100">
+    <div wx-config='{"url": "ws://localhost:3000/ws", "debug": true}'>
+      <div class="container mx-auto p-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Main Chat Area -->
+          <div class="md:col-span-3">
+            <div class="bg-white rounded-lg shadow-lg">
+              <div id="error" class="text-red-500 p-4"></div>
+
+              <!-- Login Form -->
+              <div id="login-form" class="p-6">
+                <h1 class="text-2xl font-bold mb-4">Join Chat Room</h1>
+                <form wx-send="login" wx-target="#login-form">
+                  <div class="mb-4">
+                    <input
+                      name="username"
+                      type="text"
+                      placeholder="Enter your username"
+                      class="w-full p-3 border border-gray-300 rounded-lg"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    class="w-full bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600"
+                  >
+                    Join Chat
+                  </button>
+                </form>
+              </div>
+
+              <!-- Chat Interface (hidden until login) -->
+              <div id="chat-container" class="chat-container"></div>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="bg-white rounded-lg shadow-lg p-4">
+            <div id="user-list">
+              <h3>Online Users (0)</h3>
+              <ul></ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Handle typing indicator cleanup
+      let typingTimer;
+
+      document.addEventListener("wsx:beforeRequest", (event) => {
+        if (event.detail.request.handler === "typing") {
+          clearTimeout(typingTimer);
+          typingTimer = setTimeout(() => {
+            // Send stop typing after 2 seconds of inactivity
+            wsx.trigger('[wx-send="typing"]', { isTyping: false });
+          }, 2000);
+        }
+      });
+
+      // Auto-scroll to bottom of messages
+      document.addEventListener("wsx:afterSwap", (event) => {
+        if (event.detail.update.target === "#messages") {
+          const messagesContainer = document.querySelector(
+            ".messages-container"
+          );
+          if (messagesContainer) {
+            messagesContainer.scrollTop = 0; // Scroll to top since we use afterbegin
+          }
+        }
+      });
+
+      // Focus input after login
+      document.addEventListener("wsx:afterSwap", (event) => {
+        if (event.detail.update.target === "#chat-container") {
+          const input = document.querySelector("#message-input");
+          if (input) {
+            input.focus();
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
+```
+
+## Advanced Features
+
+### Private Messages
+
+```javascript
+// Send private message
+wsx.on("private-message", async (request, connection) => {
+  const { recipient, message } = request.data;
+  const sender = users.get(connection.id);
+
+  if (!sender || !message.trim()) return;
+
+  // Find recipient connection
+  const recipientConnection = Array.from(users.entries()).find(
+    ([, user]) => user.username === recipient
+  );
+
+  if (!recipientConnection) {
+    return {
+      id: request.id,
+      target: "#error",
+      html: '<div class="error">User not found</div>',
+    };
+  }
+
+  const [recipientId] = recipientConnection;
+  const timestamp = new Date().toLocaleTimeString();
+
+  // Send to recipient
+  wsx.sendToConnection(
+    recipientId,
+    "#messages",
+    `
+    <div class="message private">
+      <div class="message-header">
+        <span class="username">${sender.username} (private)</span>
+        <span class="timestamp">${timestamp}</span>
+      </div>
+      <div class="message-content">${escapeHtml(message)}</div>
+    </div>
+  `,
+    "afterbegin"
+  );
+
+  // Confirm to sender
+  return {
+    id: request.id,
+    target: "#messages",
+    html: `
+      <div class="message private sent">
+        <div class="message-header">
+          <span class="username">You to ${recipient}</span>
+          <span class="timestamp">${timestamp}</span>
+        </div>
+        <div class="message-content">${escapeHtml(message)}</div>
+      </div>
+    `,
+    swap: "afterbegin",
+  };
+});
+```
+
+### Message Reactions
+
+```javascript
+// Add reaction to message
+wsx.on("add-reaction", async (request, connection) => {
+  const { messageId, emoji } = request.data;
+  const user = users.get(connection.id);
+
+  if (!user) return;
+
+  // Store reaction (you'd use a database in production)
+  const reactions = getMessageReactions(messageId);
+  reactions.push({ user: user.username, emoji });
+
+  // Broadcast updated reactions
+  wsx.broadcast(`#reactions-${messageId}`, generateReactions(reactions));
+});
+```
+
+### File Sharing
+
+```javascript
+// Handle file upload
+app.post("/upload", upload.single("file"), (req, res) => {
+  const file = req.file;
+  const user = req.body.username;
+
+  // Store file info
+  const fileMessage = {
+    id: Date.now(),
+    username: user,
+    type: "file",
+    filename: file.originalname,
+    size: file.size,
+    url: `/uploads/${file.filename}`,
+    timestamp: new Date(),
+  };
+
+  messages.push(fileMessage);
+
+  // Broadcast file message
+  wsx.broadcast(
+    "#messages",
+    `
+    <div class="message file">
+      <div class="message-header">
+        <span class="username">${user}</span>
+        <span class="timestamp">${fileMessage.timestamp.toLocaleTimeString()}</span>
+      </div>
+      <div class="message-content">
+        📎 <a href="${fileMessage.url}" target="_blank">${
+      fileMessage.filename
+    }</a>
+        <span class="file-size">(${formatFileSize(fileMessage.size)})</span>
+      </div>
+    </div>
+  `,
+    "afterbegin"
+  );
+
+  res.json({ success: true });
+});
+```
+
+## Production Considerations
+
+### Scaling
+
+For production use, consider:
+
+1. **Database Storage**: Use a database instead of in-memory storage
+2. **Message Queues**: Use Redis or similar for cross-server communication
+3. **Authentication**: Implement proper user authentication
+4. **Rate Limiting**: Add rate limiting to prevent spam
+5. **File Storage**: Use cloud storage for file uploads
+
+### Security
+
+```javascript
+// Input sanitization
+function sanitizeMessage(message) {
+  return message
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+// Rate limiting
+const rateLimiter = new Map();
+
+wsx.on("send-message", async (request, connection) => {
+  const userId = connection.id;
+  const now = Date.now();
+  const userRateLimit = rateLimiter.get(userId) || {
+    count: 0,
+    resetTime: now + 60000,
+  };
+
+  if (now > userRateLimit.resetTime) {
+    userRateLimit.count = 0;
+    userRateLimit.resetTime = now + 60000;
+  }
+
+  if (userRateLimit.count >= 10) {
+    return {
+      id: request.id,
+      target: "#error",
+      html: '<div class="error">Rate limit exceeded. Please wait.</div>',
+    };
+  }
+
+  userRateLimit.count++;
+  rateLimiter.set(userId, userRateLimit);
+
+  // Process message...
+});
+```
+
+## Complete Example
+
+You can find the complete, runnable example in our [GitHub repository](https://github.com/stukennedy/wsx/tree/main/examples/chat).
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Live Search"
+    icon="magnifying-glass"
+    href="/examples/live-search"
+  >
+    Build a live search interface with debouncing
+  </Card>
+  <Card title="Dashboard" icon="chart-bar" href="/examples/dashboard">
+    Create a real-time dashboard with metrics
+  </Card>
+  <Card title="Broadcasting" icon="broadcast-tower" href="/server/broadcasting">
+    Learn more about broadcasting patterns
+  </Card>
+  <Card title="Performance" icon="gauge" href="/advanced/performance">
+    Optimize your real-time applications
+  </Card>
+</CardGroup>

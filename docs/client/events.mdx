@@ -1,0 +1,677 @@
+---
+title: "Client Events"
+description: "Understanding client-side events for handling WSX responses"
+---
+
+# Client Events
+
+WSX provides a comprehensive event system for handling WebSocket responses, connection states, and client-side interactions. These events allow you to create rich, responsive user experiences.
+
+## Connection Events
+
+### wsx:connected
+Fired when WebSocket connection is established:
+
+```javascript
+document.addEventListener('wsx:connected', (event) => {
+  console.log('Connected to WSX server');
+  
+  // Hide connection error messages
+  document.querySelector('#connection-error').style.display = 'none';
+  
+  // Show online status
+  document.querySelector('#status').textContent = 'Online';
+});
+```
+
+### wsx:disconnected
+Fired when WebSocket connection is lost:
+
+```javascript
+document.addEventListener('wsx:disconnected', (event) => {
+  console.log('Disconnected from WSX server');
+  
+  // Show connection error message
+  document.querySelector('#connection-error').style.display = 'block';
+  
+  // Show offline status
+  document.querySelector('#status').textContent = 'Offline';
+});
+```
+
+### wsx:error
+Fired when WebSocket errors occur:
+
+```javascript
+document.addEventListener('wsx:error', (event) => {
+  console.error('WSX error:', event.detail.error);
+  
+  // Show user-friendly error message
+  const errorDiv = document.querySelector('#error-message');
+  errorDiv.textContent = 'Connection error. Please try again.';
+  errorDiv.style.display = 'block';
+});
+```
+
+## Request Events
+
+### wsx:beforeRequest
+Fired before sending a request to the server:
+
+```javascript
+document.addEventListener('wsx:beforeRequest', (event) => {
+  console.log('Sending request:', event.detail);
+  
+  // Show loading state
+  const element = event.target;
+  element.classList.add('loading');
+  
+  // Disable form submission
+  if (element.tagName === 'FORM') {
+    const submitBtn = element.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+    }
+  }
+});
+```
+
+### wsx:afterRequest
+Fired after receiving a response from the server:
+
+```javascript
+document.addEventListener('wsx:afterRequest', (event) => {
+  console.log('Request completed:', event.detail);
+  
+  // Hide loading state
+  const element = event.target;
+  element.classList.remove('loading');
+  
+  // Re-enable form submission
+  if (element.tagName === 'FORM') {
+    const submitBtn = element.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+    }
+  }
+});
+```
+
+### wsx:requestError
+Fired when a request fails:
+
+```javascript
+document.addEventListener('wsx:requestError', (event) => {
+  console.error('Request failed:', event.detail);
+  
+  // Show error message
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'error';
+  errorDiv.textContent = 'Request failed. Please try again.';
+  
+  event.target.appendChild(errorDiv);
+  
+  // Auto-hide error after 5 seconds
+  setTimeout(() => {
+    errorDiv.remove();
+  }, 5000);
+});
+```
+
+## Swap Events
+
+### wsx:beforeSwap
+Fired before content is swapped:
+
+```javascript
+document.addEventListener('wsx:beforeSwap', (event) => {
+  console.log('Before swap:', event.detail);
+  
+  const { target, content, swapType } = event.detail;
+  
+  // Add animation class
+  target.classList.add('swap-animation');
+  
+  // Save current content for undo functionality
+  target.dataset.previousContent = target.innerHTML;
+  
+  // Cancel swap if needed
+  if (shouldCancelSwap(content)) {
+    event.preventDefault();
+  }
+});
+```
+
+### wsx:afterSwap
+Fired after content is swapped:
+
+```javascript
+document.addEventListener('wsx:afterSwap', (event) => {
+  console.log('After swap:', event.detail);
+  
+  const { target, content, swapType } = event.detail;
+  
+  // Remove animation class
+  target.classList.remove('swap-animation');
+  
+  // Initialize new content
+  initializeNewContent(target);
+  
+  // Scroll to target if needed
+  if (target.dataset.scrollAfterSwap) {
+    target.scrollIntoView({ behavior: 'smooth' });
+  }
+});
+```
+
+### wsx:swapError
+Fired when content swap fails:
+
+```javascript
+document.addEventListener('wsx:swapError', (event) => {
+  console.error('Swap failed:', event.detail);
+  
+  const { target, error } = event.detail;
+  
+  // Restore previous content
+  if (target.dataset.previousContent) {
+    target.innerHTML = target.dataset.previousContent;
+  }
+  
+  // Show error message
+  const errorDiv = document.createElement('div');
+  errorDiv.className = 'swap-error';
+  errorDiv.textContent = 'Update failed. Content restored.';
+  target.appendChild(errorDiv);
+});
+```
+
+## Element-Specific Events
+
+### Element Event Listeners
+Add event listeners to specific elements:
+
+```html
+<button 
+  wx-send="my-action"
+  wx-on-before="showButtonLoading"
+  wx-on-after="hideButtonLoading"
+  wx-on-error="showButtonError"
+>
+  Action Button
+</button>
+
+<script>
+function showButtonLoading(event) {
+  const button = event.target;
+  button.textContent = 'Loading...';
+  button.disabled = true;
+}
+
+function hideButtonLoading(event) {
+  const button = event.target;
+  button.textContent = 'Action Button';
+  button.disabled = false;
+}
+
+function showButtonError(event) {
+  const button = event.target;
+  button.textContent = 'Error - Try Again';
+  button.classList.add('error');
+  
+  setTimeout(() => {
+    button.textContent = 'Action Button';
+    button.classList.remove('error');
+  }, 3000);
+}
+</script>
+```
+
+### Form Events
+Handle form-specific events:
+
+```javascript
+// Form submission events
+document.addEventListener('wsx:beforeRequest', (event) => {
+  if (event.target.tagName === 'FORM') {
+    // Validate form before submission
+    const form = event.target;
+    const isValid = validateForm(form);
+    
+    if (!isValid) {
+      event.preventDefault();
+      showFormErrors(form);
+    }
+  }
+});
+
+document.addEventListener('wsx:afterRequest', (event) => {
+  if (event.target.tagName === 'FORM') {
+    // Clear form on successful submission
+    const form = event.target;
+    if (event.detail.success) {
+      form.reset();
+      showSuccessMessage(form);
+    }
+  }
+});
+```
+
+## Real-World Event Handling
+
+### Loading States
+```javascript
+// Global loading state management
+let activeRequests = 0;
+
+document.addEventListener('wsx:beforeRequest', () => {
+  activeRequests++;
+  updateLoadingState();
+});
+
+document.addEventListener('wsx:afterRequest', () => {
+  activeRequests--;
+  updateLoadingState();
+});
+
+document.addEventListener('wsx:requestError', () => {
+  activeRequests--;
+  updateLoadingState();
+});
+
+function updateLoadingState() {
+  const loader = document.querySelector('#global-loader');
+  if (activeRequests > 0) {
+    loader.style.display = 'block';
+  } else {
+    loader.style.display = 'none';
+  }
+}
+```
+
+### Error Handling
+```javascript
+// Centralized error handling
+document.addEventListener('wsx:requestError', (event) => {
+  const { error, request } = event.detail;
+  
+  // Log error for debugging
+  console.error('WSX Request Error:', error);
+  
+  // Show user-friendly error message
+  showNotification('Request failed. Please try again.', 'error');
+  
+  // Track errors for analytics
+  trackError('wsx_request_error', {
+    handler: request.handler,
+    error: error.message
+  });
+});
+
+document.addEventListener('wsx:error', (event) => {
+  const { error } = event.detail;
+  
+  // Handle different error types
+  if (error.code === 'WEBSOCKET_CLOSED') {
+    showNotification('Connection lost. Attempting to reconnect...', 'warning');
+  } else if (error.code === 'TIMEOUT') {
+    showNotification('Request timed out. Please try again.', 'error');
+  } else {
+    showNotification('An unexpected error occurred.', 'error');
+  }
+});
+```
+
+### Connection Management
+```javascript
+// Connection state management
+let isConnected = false;
+let reconnectAttempts = 0;
+const maxReconnectAttempts = 5;
+
+document.addEventListener('wsx:connected', () => {
+  isConnected = true;
+  reconnectAttempts = 0;
+  
+  // Update UI
+  document.querySelector('#connection-status').textContent = 'Connected';
+  document.querySelector('#connection-status').className = 'status online';
+  
+  // Enable all WSX elements
+  document.querySelectorAll('[wx-send]').forEach(el => {
+    el.disabled = false;
+  });
+});
+
+document.addEventListener('wsx:disconnected', () => {
+  isConnected = false;
+  
+  // Update UI
+  document.querySelector('#connection-status').textContent = 'Disconnected';
+  document.querySelector('#connection-status').className = 'status offline';
+  
+  // Disable WSX elements
+  document.querySelectorAll('[wx-send]').forEach(el => {
+    el.disabled = true;
+  });
+  
+  // Attempt reconnection
+  if (reconnectAttempts < maxReconnectAttempts) {
+    reconnectAttempts++;
+    setTimeout(() => {
+      wsx.reconnect();
+    }, 1000 * reconnectAttempts);
+  }
+});
+```
+
+## Animation and Transitions
+
+### Smooth Transitions
+```javascript
+// Add smooth transitions during swaps
+document.addEventListener('wsx:beforeSwap', (event) => {
+  const target = event.detail.target;
+  
+  // Add fade-out animation
+  target.style.opacity = '0';
+  target.style.transition = 'opacity 0.3s ease';
+});
+
+document.addEventListener('wsx:afterSwap', (event) => {
+  const target = event.detail.target;
+  
+  // Add fade-in animation
+  requestAnimationFrame(() => {
+    target.style.opacity = '1';
+  });
+  
+  // Clean up transition after animation
+  setTimeout(() => {
+    target.style.transition = '';
+  }, 300);
+});
+```
+
+### Progress Indicators
+```javascript
+// Progress bar for long operations
+document.addEventListener('wsx:beforeRequest', (event) => {
+  const progressBar = document.querySelector('#progress-bar');
+  progressBar.style.width = '0%';
+  progressBar.style.display = 'block';
+  
+  // Simulate progress
+  let progress = 0;
+  const interval = setInterval(() => {
+    progress += 10;
+    progressBar.style.width = `${progress}%`;
+    
+    if (progress >= 90) {
+      clearInterval(interval);
+    }
+  }, 100);
+  
+  // Store interval for cleanup
+  event.target.dataset.progressInterval = interval;
+});
+
+document.addEventListener('wsx:afterRequest', (event) => {
+  const progressBar = document.querySelector('#progress-bar');
+  const interval = event.target.dataset.progressInterval;
+  
+  if (interval) {
+    clearInterval(interval);
+  }
+  
+  progressBar.style.width = '100%';
+  
+  setTimeout(() => {
+    progressBar.style.display = 'none';
+  }, 200);
+});
+```
+
+## Advanced Event Patterns
+
+### Event Delegation
+```javascript
+// Handle events for dynamically added content
+document.addEventListener('wsx:afterSwap', (event) => {
+  const target = event.detail.target;
+  
+  // Initialize new interactive elements
+  target.querySelectorAll('[data-tooltip]').forEach(el => {
+    initializeTooltip(el);
+  });
+  
+  target.querySelectorAll('[data-modal]').forEach(el => {
+    initializeModal(el);
+  });
+});
+```
+
+### Custom Event Dispatch
+```javascript
+// Dispatch custom events based on WSX events
+document.addEventListener('wsx:afterSwap', (event) => {
+  const { target, content } = event.detail;
+  
+  // Dispatch custom events for specific content types
+  if (content.includes('data-component="chart"')) {
+    target.dispatchEvent(new CustomEvent('chart:updated', {
+      detail: { content }
+    }));
+  }
+  
+  if (content.includes('data-component="form"')) {
+    target.dispatchEvent(new CustomEvent('form:loaded', {
+      detail: { content }
+    }));
+  }
+});
+```
+
+### Event Filtering
+```javascript
+// Filter events based on element attributes
+document.addEventListener('wsx:beforeRequest', (event) => {
+  const element = event.target;
+  
+  // Only handle events for certain elements
+  if (!element.hasAttribute('data-track-events')) {
+    return;
+  }
+  
+  // Track request events
+  analytics.track('wsx_request', {
+    handler: event.detail.handler,
+    element: element.tagName.toLowerCase()
+  });
+});
+```
+
+## Event Utilities
+
+### Event Logger
+```javascript
+// Log all WSX events for debugging
+function logWSXEvents() {
+  const events = [
+    'wsx:connected',
+    'wsx:disconnected',
+    'wsx:error',
+    'wsx:beforeRequest',
+    'wsx:afterRequest',
+    'wsx:requestError',
+    'wsx:beforeSwap',
+    'wsx:afterSwap',
+    'wsx:swapError'
+  ];
+  
+  events.forEach(eventName => {
+    document.addEventListener(eventName, (event) => {
+      console.log(`${eventName}:`, event.detail);
+    });
+  });
+}
+
+// Enable logging in development
+if (process.env.NODE_ENV === 'development') {
+  logWSXEvents();
+}
+```
+
+### Event Metrics
+```javascript
+// Track event metrics
+const eventMetrics = {
+  requests: 0,
+  errors: 0,
+  swaps: 0,
+  connectionIssues: 0
+};
+
+document.addEventListener('wsx:beforeRequest', () => {
+  eventMetrics.requests++;
+});
+
+document.addEventListener('wsx:requestError', () => {
+  eventMetrics.errors++;
+});
+
+document.addEventListener('wsx:afterSwap', () => {
+  eventMetrics.swaps++;
+});
+
+document.addEventListener('wsx:disconnected', () => {
+  eventMetrics.connectionIssues++;
+});
+
+// Report metrics periodically
+setInterval(() => {
+  console.log('WSX Metrics:', eventMetrics);
+}, 60000); // Every minute
+```
+
+## Testing Events
+
+### Event Testing
+```javascript
+// Test event handling
+describe('WSX Events', () => {
+  test('should handle connection events', () => {
+    const connectSpy = jest.fn();
+    const disconnectSpy = jest.fn();
+    
+    document.addEventListener('wsx:connected', connectSpy);
+    document.addEventListener('wsx:disconnected', disconnectSpy);
+    
+    // Simulate connection
+    wsx.connect();
+    expect(connectSpy).toHaveBeenCalled();
+    
+    // Simulate disconnection
+    wsx.disconnect();
+    expect(disconnectSpy).toHaveBeenCalled();
+  });
+  
+  test('should handle request events', () => {
+    const beforeSpy = jest.fn();
+    const afterSpy = jest.fn();
+    
+    document.addEventListener('wsx:beforeRequest', beforeSpy);
+    document.addEventListener('wsx:afterRequest', afterSpy);
+    
+    // Trigger request
+    document.querySelector('[wx-send="test"]').click();
+    
+    expect(beforeSpy).toHaveBeenCalled();
+    // afterSpy will be called when response is received
+  });
+});
+```
+
+### Mock Events
+```javascript
+// Mock WSX events for testing
+function mockWSXEvent(eventName, detail = {}) {
+  const event = new CustomEvent(eventName, { detail });
+  document.dispatchEvent(event);
+}
+
+// Test error handling
+mockWSXEvent('wsx:error', { error: { message: 'Test error' } });
+
+// Test swap events
+mockWSXEvent('wsx:beforeSwap', { 
+  target: document.querySelector('#test-element'),
+  content: '<div>Test content</div>'
+});
+```
+
+## Best Practices
+
+1. **Use Specific Event Listeners**: Target specific elements when possible
+2. **Clean Up Event Listeners**: Remove listeners when elements are removed
+3. **Handle Errors Gracefully**: Provide user-friendly error messages
+4. **Debounce Heavy Operations**: Avoid too frequent event handling
+5. **Use Event Delegation**: Handle events for dynamically added content
+6. **Test Event Handlers**: Ensure event handling works correctly
+7. **Monitor Performance**: Track event frequency and performance impact
+
+## Common Patterns
+
+### Notification System
+```javascript
+// Global notification system
+function showNotification(message, type = 'info', duration = 5000) {
+  const notification = document.createElement('div');
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, duration);
+}
+
+// Use with WSX events
+document.addEventListener('wsx:afterRequest', (event) => {
+  if (event.detail.success) {
+    showNotification('Action completed successfully!', 'success');
+  }
+});
+```
+
+### Auto-Save Indicator
+```javascript
+// Show save status
+document.addEventListener('wsx:beforeRequest', (event) => {
+  if (event.detail.handler === 'auto-save') {
+    const indicator = document.querySelector('#save-indicator');
+    indicator.textContent = 'Saving...';
+    indicator.className = 'save-indicator saving';
+  }
+});
+
+document.addEventListener('wsx:afterRequest', (event) => {
+  if (event.detail.handler === 'auto-save') {
+    const indicator = document.querySelector('#save-indicator');
+    indicator.textContent = 'Saved';
+    indicator.className = 'save-indicator saved';
+    
+    setTimeout(() => {
+      indicator.textContent = '';
+      indicator.className = 'save-indicator';
+    }, 2000);
+  }
+});
+```
+
+## Next Steps
+
+- Learn about [Client Configuration](/client/configuration) for global settings
+- Explore [Server Handlers](/server/handlers) for processing requests
+- Understand [Broadcasting](/server/broadcasting) for real-time updates

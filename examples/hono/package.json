@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@wsx/hono": "workspace:*",
+    "@wsx/core": "workspace:*",
     "hono": "^4.8.4"
   },
   "devDependencies": {

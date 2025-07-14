@@ -1,0 +1,247 @@
+---
+title: "Connections"
+description: "Understanding WebSocket connections in WSX"
+---
+
+# Connections
+
+WSX manages WebSocket connections through the `WSXConnection` interface, providing a clean abstraction for real-time communication between clients and servers.
+
+## Connection Lifecycle
+
+### Connection Establishment
+When a client establishes a WebSocket connection, WSX creates a `WSXConnection` instance that represents that specific connection:
+
+```javascript
+// Client connects to WebSocket endpoint
+const wsx = new WSX({
+  url: "ws://localhost:3000/ws"
+});
+```
+
+### Connection Object
+Each connection has the following properties:
+
+```typescript
+interface WSXConnection {
+  id: string;                    // Unique connection identifier
+  sessionData?: Record<string, any>; // Optional session data
+  send(data: string): void;      // Send data to client
+  close(): void;                 // Close the connection
+}
+```
+
+## Connection Management
+
+### Getting Connections
+You can retrieve connection information on the server:
+
+```javascript
+// Get all active connections
+const connections = wsx.getConnections();
+
+// Get connection count
+const count = wsx.getConnectionCount();
+
+// Remove a specific connection
+wsx.removeConnection(connectionId);
+```
+
+### Connection Events
+Handle connection lifecycle events:
+
+```javascript
+// Handle new connections
+wsx.onConnection = (connection) => {
+  console.log(`New connection: ${connection.id}`);
+  
+  // Set session data
+  connection.sessionData = {
+    connectedAt: new Date(),
+    userId: null
+  };
+};
+
+// Handle disconnections
+wsx.onDisconnection = (connection) => {
+  console.log(`Connection ${connection.id} disconnected`);
+};
+```
+
+## Session Data
+
+### Storing Session Information
+Use `sessionData` to store per-connection information:
+
+```javascript
+wsx.on("login", async (request, connection) => {
+  const { username } = request.data;
+  
+  // Store user info in session
+  connection.sessionData = {
+    ...connection.sessionData,
+    userId: username,
+    loginTime: new Date()
+  };
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Welcome, ${username}!</div>`
+  };
+});
+```
+
+### Accessing Session Data
+Access session data in handlers:
+
+```javascript
+wsx.on("get-profile", async (request, connection) => {
+  const userId = connection.sessionData?.userId;
+  
+  if (!userId) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Please log in first</div>`
+    };
+  }
+  
+  // Use userId to fetch profile...
+});
+```
+
+## Connection-Specific Messaging
+
+### Send to Specific Connection
+Send messages to individual connections:
+
+```javascript
+// Send to specific connection
+wsx.sendToConnection(
+  connectionId,
+  "#notification",
+  "<div>Personal message</div>"
+);
+
+// Send with custom swap
+wsx.sendToConnection(
+  connectionId,
+  "#status",
+  "<div>Status updated</div>",
+  "beforeend"
+);
+```
+
+### Conditional Broadcasting
+Broadcast to connections based on conditions:
+
+```javascript
+// Broadcast to logged-in users only
+const connections = wsx.getConnections();
+connections
+  .filter(conn => conn.sessionData?.userId)
+  .forEach(conn => {
+    wsx.sendToConnection(
+      conn.id,
+      "#announcement",
+      "<div>User announcement</div>"
+    );
+  });
+```
+
+## Connection Patterns
+
+### User Authentication
+```javascript
+wsx.on("authenticate", async (request, connection) => {
+  const { token } = request.data;
+  const user = await validateToken(token);
+  
+  if (user) {
+    connection.sessionData = {
+      ...connection.sessionData,
+      user,
+      authenticated: true
+    };
+  }
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: user ? 
+      `<div>Authenticated as ${user.name}</div>` :
+      `<div>Authentication failed</div>`
+  };
+});
+```
+
+### Room/Channel Management
+```javascript
+// Join a room
+wsx.on("join-room", async (request, connection) => {
+  const { roomId } = request.data;
+  
+  connection.sessionData = {
+    ...connection.sessionData,
+    roomId
+  };
+  
+  // Notify room members
+  const roomConnections = wsx.getConnections()
+    .filter(conn => conn.sessionData?.roomId === roomId);
+    
+  roomConnections.forEach(conn => {
+    if (conn.id !== connection.id) {
+      wsx.sendToConnection(
+        conn.id,
+        "#room-activity",
+        "<div>User joined room</div>"
+      );
+    }
+  });
+});
+```
+
+## Error Handling
+
+### Connection Errors
+Handle connection-related errors gracefully:
+
+```javascript
+wsx.on("sensitive-operation", async (request, connection) => {
+  try {
+    // Check connection state
+    if (!connection.sessionData?.authenticated) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Authentication required</div>`
+      };
+    }
+    
+    // Perform operation...
+  } catch (error) {
+    console.error(`Error for connection ${connection.id}:`, error);
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Operation failed</div>`
+    };
+  }
+});
+```
+
+## Best Practices
+
+1. **Session Management**: Use `sessionData` for user state, not global variables
+2. **Connection Cleanup**: Handle disconnections to clean up resources
+3. **Security**: Validate authentication before sensitive operations
+4. **Error Handling**: Always handle connection errors gracefully
+5. **Resource Management**: Don't store large objects in session data
+
+## Next Steps
+
+- Learn about [Handlers](/concepts/handlers) for processing requests
+- Explore [Broadcasting](/server/broadcasting) for multi-client communication
+- Understand [Triggers](/concepts/triggers) for client-side events

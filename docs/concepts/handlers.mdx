@@ -1,0 +1,329 @@
+---
+title: "Handlers"
+description: "Understanding request handlers in WSX"
+---
+
+# Handlers
+
+Handlers are the core mechanism for processing WebSocket requests in WSX. They define how your server responds to different types of client interactions.
+
+## Handler Basics
+
+### Handler Function Signature
+All handlers follow the same signature:
+
+```typescript
+type WSXHandler = (
+  request: WSXRequest,
+  connection: WSXConnection
+) => Promise<WSXResponse | WSXResponse[] | void>;
+```
+
+### Registering Handlers
+Register handlers using the `on` method:
+
+```javascript
+// Named handler
+wsx.on("button-click", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Button clicked!</div>`
+  };
+});
+
+// Default handler (catches all events)
+wsx.on(async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Default response</div>`
+  };
+});
+```
+
+## Request Object
+
+### WSXRequest Properties
+```typescript
+interface WSXRequest {
+  id: string;        // Unique request identifier
+  handler: string;   // Handler name (from wx-send)
+  target: string;    // Target selector (from wx-target)
+  trigger: string;   // Trigger event (click, submit, etc.)
+  data?: Record<string, any>; // Form data or custom data
+  swap?: string;     // Swap specification
+}
+```
+
+### Accessing Request Data
+```javascript
+wsx.on("search", async (request, connection) => {
+  const query = request.data?.query || '';
+  const page = request.data?.page || 1;
+  
+  // Process search...
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Results for: ${query}</div>`
+  };
+});
+```
+
+## Response Object
+
+### WSXResponse Properties
+```typescript
+interface WSXResponse {
+  id: string;        // Must match request.id
+  target: string;    // CSS selector for target element
+  html: string;      // HTML content to swap
+  swap?: string;     // How to swap content
+  oob?: WSXOOBUpdate[]; // Out-of-band updates
+}
+```
+
+### Basic Response
+```javascript
+wsx.on("update-content", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Updated at ${new Date().toLocaleTimeString()}</div>`
+  };
+});
+```
+
+## Handler Types
+
+### Named Handlers
+Handle specific actions by name:
+
+```javascript
+wsx.on("user-login", async (request, connection) => {
+  const { username, password } = request.data;
+  const user = await authenticate(username, password);
+  
+  if (user) {
+    connection.sessionData = { user };
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Welcome, ${user.name}!</div>`
+    };
+  } else {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Invalid credentials</div>`
+    };
+  }
+});
+```
+
+### Event-Based Handlers
+Handle by trigger type:
+
+```javascript
+wsx.on("click", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Clicked at ${new Date().toLocaleTimeString()}</div>`
+  };
+});
+
+wsx.on("submit", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Form submitted with data: ${JSON.stringify(request.data)}</div>`
+  };
+});
+```
+
+### Catch-All Handler
+Handle all unmatched requests:
+
+```javascript
+wsx.on(async (request, connection) => {
+  console.log(`Unhandled request: ${request.handler}`);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Handler "${request.handler}" not found</div>`
+  };
+});
+```
+
+## Advanced Handler Patterns
+
+### Conditional Logic
+```javascript
+wsx.on("admin-action", async (request, connection) => {
+  const user = connection.sessionData?.user;
+  
+  if (!user?.isAdmin) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Access denied</div>`
+    };
+  }
+  
+  // Admin logic here...
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Admin action completed</div>`
+  };
+});
+```
+
+### Async Operations
+```javascript
+wsx.on("save-data", async (request, connection) => {
+  try {
+    const result = await database.save(request.data);
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="success">Data saved: ${result.id}</div>`
+    };
+  } catch (error) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Save failed: ${error.message}</div>`
+    };
+  }
+});
+```
+
+### Multiple Responses
+Return arrays for multiple updates:
+
+```javascript
+wsx.on("complex-update", async (request, connection) => {
+  const updates = await getMultipleUpdates();
+  
+  return updates.map(update => ({
+    id: request.id,
+    target: update.target,
+    html: update.html
+  }));
+});
+```
+
+## Handler Chaining
+
+### Middleware Pattern
+```javascript
+// Authentication middleware
+function requireAuth(handler) {
+  return async (request, connection) => {
+    if (!connection.sessionData?.authenticated) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Authentication required</div>`
+      };
+    }
+    
+    return handler(request, connection);
+  };
+}
+
+// Use middleware
+wsx.on("protected-action", requireAuth(async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Protected action executed</div>`
+  };
+}));
+```
+
+### Validation
+```javascript
+function validateRequest(schema) {
+  return (handler) => async (request, connection) => {
+    const validation = schema.validate(request.data);
+    
+    if (validation.error) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Validation failed: ${validation.error.message}</div>`
+      };
+    }
+    
+    return handler(request, connection);
+  };
+}
+```
+
+## Error Handling
+
+### Try-Catch Pattern
+```javascript
+wsx.on("risky-operation", async (request, connection) => {
+  try {
+    const result = await performRiskyOperation(request.data);
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="success">Operation completed: ${result}</div>`
+    };
+  } catch (error) {
+    console.error('Risky operation failed:', error);
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Operation failed</div>`
+    };
+  }
+});
+```
+
+### Graceful Degradation
+```javascript
+wsx.on("fallback-handler", async (request, connection) => {
+  try {
+    const primaryResult = await primaryService.process(request.data);
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Primary: ${primaryResult}</div>`
+    };
+  } catch (error) {
+    // Fallback to secondary service
+    const fallbackResult = await fallbackService.process(request.data);
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Fallback: ${fallbackResult}</div>`
+    };
+  }
+});
+```
+
+## Best Practices
+
+1. **Always Return Responses**: Handlers should return a response object
+2. **Handle Errors**: Use try-catch blocks for async operations
+3. **Validate Input**: Check request data before processing
+4. **Use Session Data**: Store connection-specific state in `sessionData`
+5. **Keep Handlers Focused**: Each handler should handle one specific action
+6. **Log Appropriately**: Log errors and important events
+
+## Next Steps
+
+- Learn about [Triggers](/concepts/triggers) for client-side events
+- Explore [Out-of-Band Updates](/concepts/oob-updates) for multiple element updates
+- Understand [Swaps](/concepts/swaps) for content replacement strategies

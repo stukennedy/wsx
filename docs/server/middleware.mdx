@@ -1,0 +1,712 @@
+---
+title: "Server Middleware"
+description: "Using middleware to process WSX requests"
+---
+
+# Server Middleware
+
+Middleware allows you to intercept and process WSX requests before they reach your handlers. This enables cross-cutting concerns like authentication, logging, validation, and rate limiting.
+
+## Basic Middleware Concepts
+
+### Middleware Function Structure
+```javascript
+function myMiddleware(request, connection, next) {
+  // Process request
+  console.log(`Processing ${request.handler}`);
+  
+  // Call next middleware or handler
+  next();
+}
+```
+
+### Handler Wrapper Pattern
+```javascript
+function withAuth(handler) {
+  return async (request, connection) => {
+    // Check authentication
+    if (!connection.sessionData?.user) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Authentication required</div>`
+      };
+    }
+    
+    // Call original handler
+    return handler(request, connection);
+  };
+}
+
+// Usage
+wsx.on("protected-action", withAuth(async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Protected action executed</div>`
+  };
+}));
+```
+
+## Authentication Middleware
+
+### JWT Authentication
+```javascript
+import jwt from 'jsonwebtoken';
+
+function requireAuth(handler) {
+  return async (request, connection) => {
+    const token = connection.sessionData?.token || 
+                 request.headers?.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">No authentication token provided</div>`
+      };
+    }
+    
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      connection.sessionData = {
+        ...connection.sessionData,
+        user: decoded
+      };
+      
+      return handler(request, connection);
+    } catch (error) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Invalid authentication token</div>`
+      };
+    }
+  };
+}
+
+// Usage
+wsx.on("secure-data", requireAuth(async (request, connection) => {
+  const user = connection.sessionData.user;
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Welcome, ${user.username}!</div>`
+  };
+}));
+```
+
+### Role-Based Authorization
+```javascript
+function requireRole(roles) {
+  return function(handler) {
+    return async (request, connection) => {
+      const user = connection.sessionData?.user;
+      
+      if (!user) {
+        return {
+          id: request.id,
+          target: request.target,
+          html: `<div class="error">Authentication required</div>`
+        };
+      }
+      
+      const hasRole = Array.isArray(roles) 
+        ? roles.includes(user.role)
+        : user.role === roles;
+      
+      if (!hasRole) {
+        return {
+          id: request.id,
+          target: request.target,
+          html: `<div class="error">Insufficient permissions</div>`
+        };
+      }
+      
+      return handler(request, connection);
+    };
+  };
+}
+
+// Usage
+wsx.on("admin-panel", requireRole('admin')(async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Admin panel content</div>`
+  };
+}));
+
+wsx.on("moderator-action", requireRole(['admin', 'moderator'])(async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Moderator action completed</div>`
+  };
+}));
+```
+
+## Validation Middleware
+
+### Input Validation
+```javascript
+function validateInput(schema) {
+  return function(handler) {
+    return async (request, connection) => {
+      const errors = [];
+      
+      // Validate required fields
+      if (schema.required) {
+        schema.required.forEach(field => {
+          if (!request.data?.[field]) {
+            errors.push(`${field} is required`);
+          }
+        });
+      }
+      
+      // Validate field types
+      if (schema.fields) {
+        Object.entries(schema.fields).forEach(([field, rules]) => {
+          const value = request.data?.[field];
+          
+          if (value !== undefined) {
+            if (rules.type === 'email' && !isValidEmail(value)) {
+              errors.push(`${field} must be a valid email`);
+            }
+            
+            if (rules.minLength && value.length < rules.minLength) {
+              errors.push(`${field} must be at least ${rules.minLength} characters`);
+            }
+            
+            if (rules.maxLength && value.length > rules.maxLength) {
+              errors.push(`${field} must be no more than ${rules.maxLength} characters`);
+            }
+          }
+        });
+      }
+      
+      if (errors.length > 0) {
+        return {
+          id: request.id,
+          target: request.target,
+          html: `<div class="error">Validation errors: ${errors.join(', ')}</div>`
+        };
+      }
+      
+      return handler(request, connection);
+    };
+  };
+}
+
+function isValidEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Usage
+const userSchema = {
+  required: ['username', 'email'],
+  fields: {
+    username: { minLength: 3, maxLength: 20 },
+    email: { type: 'email' },
+    password: { minLength: 8 }
+  }
+};
+
+wsx.on("create-user", validateInput(userSchema)(async (request, connection) => {
+  const { username, email, password } = request.data;
+  
+  // Create user logic here
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>User ${username} created successfully</div>`
+  };
+}));
+```
+
+### Sanitization Middleware
+```javascript
+function sanitizeInput(handler) {
+  return async (request, connection) => {
+    if (request.data) {
+      // Sanitize string inputs
+      Object.keys(request.data).forEach(key => {
+        const value = request.data[key];
+        
+        if (typeof value === 'string') {
+          // Remove HTML tags
+          request.data[key] = value.replace(/<[^>]*>/g, '');
+          
+          // Trim whitespace
+          request.data[key] = request.data[key].trim();
+          
+          // Escape special characters
+          request.data[key] = escapeHtml(request.data[key]);
+        }
+      });
+    }
+    
+    return handler(request, connection);
+  };
+}
+
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// Usage
+wsx.on("submit-comment", sanitizeInput(async (request, connection) => {
+  const { comment } = request.data;
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div class="comment">${comment}</div>`
+  };
+}));
+```
+
+## Rate Limiting Middleware
+
+### Simple Rate Limiting
+```javascript
+class RateLimiter {
+  constructor(maxRequests = 10, windowMs = 60000) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+    this.requests = new Map(); // connectionId -> { count, resetTime }
+  }
+  
+  isAllowed(connectionId) {
+    const now = Date.now();
+    const record = this.requests.get(connectionId);
+    
+    if (!record || now > record.resetTime) {
+      this.requests.set(connectionId, {
+        count: 1,
+        resetTime: now + this.windowMs
+      });
+      return true;
+    }
+    
+    if (record.count >= this.maxRequests) {
+      return false;
+    }
+    
+    record.count++;
+    return true;
+  }
+}
+
+const rateLimiter = new RateLimiter(5, 60000); // 5 requests per minute
+
+function rateLimit(handler) {
+  return async (request, connection) => {
+    if (!rateLimiter.isAllowed(connection.id)) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Rate limit exceeded. Please try again later.</div>`
+      };
+    }
+    
+    return handler(request, connection);
+  };
+}
+
+// Usage
+wsx.on("send-message", rateLimit(async (request, connection) => {
+  const { message } = request.data;
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Message sent: ${message}</div>`
+  };
+}));
+```
+
+### Advanced Rate Limiting
+```javascript
+class AdvancedRateLimiter {
+  constructor(options = {}) {
+    this.limits = options.limits || {
+      default: { requests: 10, window: 60000 },
+      authenticated: { requests: 50, window: 60000 },
+      premium: { requests: 100, window: 60000 }
+    };
+    this.requests = new Map();
+  }
+  
+  getTier(connection) {
+    const user = connection.sessionData?.user;
+    
+    if (!user) return 'default';
+    if (user.isPremium) return 'premium';
+    if (user.id) return 'authenticated';
+    
+    return 'default';
+  }
+  
+  isAllowed(connection, action) {
+    const tier = this.getTier(connection);
+    const limit = this.limits[tier];
+    const key = `${connection.id}:${action}`;
+    const now = Date.now();
+    
+    const record = this.requests.get(key);
+    
+    if (!record || now > record.resetTime) {
+      this.requests.set(key, {
+        count: 1,
+        resetTime: now + limit.window
+      });
+      return { allowed: true, remaining: limit.requests - 1 };
+    }
+    
+    if (record.count >= limit.requests) {
+      return { 
+        allowed: false, 
+        remaining: 0,
+        resetTime: record.resetTime
+      };
+    }
+    
+    record.count++;
+    return { 
+      allowed: true, 
+      remaining: limit.requests - record.count 
+    };
+  }
+}
+
+const advancedRateLimiter = new AdvancedRateLimiter();
+
+function advancedRateLimit(handler) {
+  return async (request, connection) => {
+    const result = advancedRateLimiter.isAllowed(connection, request.handler);
+    
+    if (!result.allowed) {
+      const resetTime = new Date(result.resetTime).toLocaleTimeString();
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Rate limit exceeded. Resets at ${resetTime}</div>`
+      };
+    }
+    
+    // Add rate limit info to response
+    const response = await handler(request, connection);
+    
+    if (response && !Array.isArray(response)) {
+      response.headers = {
+        ...response.headers,
+        'X-RateLimit-Remaining': result.remaining
+      };
+    }
+    
+    return response;
+  };
+}
+```
+
+## Logging Middleware
+
+### Request Logging
+```javascript
+function logRequests(handler) {
+  return async (request, connection) => {
+    const startTime = Date.now();
+    const user = connection.sessionData?.user;
+    
+    console.log(`[${new Date().toISOString()}] ${request.handler} - User: ${user?.username || 'anonymous'} - Connection: ${connection.id}`);
+    
+    try {
+      const result = await handler(request, connection);
+      const duration = Date.now() - startTime;
+      
+      console.log(`[${new Date().toISOString()}] ${request.handler} completed in ${duration}ms`);
+      
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      console.error(`[${new Date().toISOString()}] ${request.handler} failed after ${duration}ms:`, error.message);
+      
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">An error occurred. Please try again.</div>`
+      };
+    }
+  };
+}
+
+// Usage
+wsx.on("logged-action", logRequests(async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Action completed</div>`
+  };
+}));
+```
+
+### Structured Logging
+```javascript
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.json()
+  ),
+  transports: [
+    new winston.transports.File({ filename: 'wsx.log' }),
+    new winston.transports.Console()
+  ]
+});
+
+function structuredLogging(handler) {
+  return async (request, connection) => {
+    const startTime = Date.now();
+    const user = connection.sessionData?.user;
+    
+    logger.info('WSX request started', {
+      handler: request.handler,
+      connectionId: connection.id,
+      userId: user?.id,
+      ip: connection.ip,
+      target: request.target
+    });
+    
+    try {
+      const result = await handler(request, connection);
+      const duration = Date.now() - startTime;
+      
+      logger.info('WSX request completed', {
+        handler: request.handler,
+        connectionId: connection.id,
+        userId: user?.id,
+        duration,
+        success: true
+      });
+      
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      logger.error('WSX request failed', {
+        handler: request.handler,
+        connectionId: connection.id,
+        userId: user?.id,
+        duration,
+        error: error.message,
+        stack: error.stack
+      });
+      
+      throw error;
+    }
+  };
+}
+```
+
+## Caching Middleware
+
+### Response Caching
+```javascript
+class ResponseCache {
+  constructor(ttl = 300000) { // 5 minutes default TTL
+    this.cache = new Map();
+    this.ttl = ttl;
+  }
+  
+  generateKey(request, connection) {
+    const user = connection.sessionData?.user;
+    return `${request.handler}:${JSON.stringify(request.data)}:${user?.id || 'anonymous'}`;
+  }
+  
+  get(key) {
+    const entry = this.cache.get(key);
+    
+    if (!entry) return null;
+    
+    if (Date.now() > entry.expires) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return entry.value;
+  }
+  
+  set(key, value) {
+    this.cache.set(key, {
+      value,
+      expires: Date.now() + this.ttl
+    });
+  }
+  
+  clear() {
+    this.cache.clear();
+  }
+}
+
+const responseCache = new ResponseCache();
+
+function cached(ttl) {
+  return function(handler) {
+    return async (request, connection) => {
+      const cacheKey = responseCache.generateKey(request, connection);
+      
+      // Try to get from cache
+      const cached = responseCache.get(cacheKey);
+      if (cached) {
+        // Update request ID for cached response
+        return {
+          ...cached,
+          id: request.id
+        };
+      }
+      
+      // Execute handler
+      const result = await handler(request, connection);
+      
+      // Cache the result
+      if (result && !Array.isArray(result)) {
+        responseCache.set(cacheKey, result);
+      }
+      
+      return result;
+    };
+  };
+}
+
+// Usage
+wsx.on("expensive-query", cached(60000)(async (request, connection) => {
+  const data = await performExpensiveQuery(request.data);
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Query result: ${data}</div>`
+  };
+}));
+```
+
+## Middleware Composition
+
+### Composing Multiple Middleware
+```javascript
+function compose(...middlewares) {
+  return function(handler) {
+    return middlewares.reduceRight((composed, middleware) => {
+      return middleware(composed);
+    }, handler);
+  };
+}
+
+// Usage
+wsx.on("complex-action", 
+  compose(
+    logRequests,
+    rateLimit,
+    requireAuth,
+    validateInput(schema),
+    cached(300000)
+  )(async (request, connection) => {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Complex action completed</div>`
+    };
+  })
+);
+```
+
+### Conditional Middleware
+```javascript
+function conditionalMiddleware(condition, middleware) {
+  return function(handler) {
+    return async (request, connection) => {
+      if (condition(request, connection)) {
+        return middleware(handler)(request, connection);
+      }
+      
+      return handler(request, connection);
+    };
+  };
+}
+
+// Usage
+wsx.on("sometimes-protected", 
+  conditionalMiddleware(
+    (request, connection) => request.data.requireAuth === true,
+    requireAuth
+  )(async (request, connection) => {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Action completed</div>`
+    };
+  })
+);
+```
+
+## Error Handling Middleware
+
+### Global Error Handler
+```javascript
+function errorHandler(handler) {
+  return async (request, connection) => {
+    try {
+      return await handler(request, connection);
+    } catch (error) {
+      console.error('Handler error:', error);
+      
+      // Log error details
+      logger.error('WSX handler error', {
+        handler: request.handler,
+        error: error.message,
+        stack: error.stack,
+        connectionId: connection.id
+      });
+      
+      // Return user-friendly error
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Something went wrong. Please try again.</div>`
+      };
+    }
+  };
+}
+
+// Apply to all handlers
+function createSafeHandler(handler) {
+  return errorHandler(handler);
+}
+```
+
+## Best Practices
+
+1. **Keep Middleware Focused**: Each middleware should handle one concern
+2. **Order Matters**: Apply middleware in the correct order (auth before validation)
+3. **Error Handling**: Always handle errors gracefully
+4. **Performance**: Consider the performance impact of middleware
+5. **Testing**: Test middleware independently and in combination
+6. **Documentation**: Document middleware behavior and requirements
+7. **Reusability**: Create reusable middleware for common patterns
+
+## Next Steps
+
+- Learn about [Framework Integration](/frameworks) for framework-specific middleware
+- Explore [Performance Optimization](/advanced/performance) for scaling
+- Understand [Security Best Practices](/advanced/security) for secure middleware

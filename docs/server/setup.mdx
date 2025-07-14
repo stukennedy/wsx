@@ -1,0 +1,893 @@
+---
+title: "Server Setup"
+description: "Setting up WSX server with different frameworks"
+---
+
+# Server Setup
+
+WSX provides server adapters for popular Node.js frameworks, making it easy to integrate WebSocket functionality into your existing applications.
+
+## Basic Setup
+
+### Express.js Setup
+
+Install the required packages:
+
+```bash
+npm install @wsx/core @wsx/express
+```
+
+Create a basic Express server with WSX:
+
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer();
+const app = wsx.getApp();
+
+// Basic handler
+wsx.on("click", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Button clicked at ${new Date().toLocaleTimeString()}</div>`
+  };
+});
+
+// Serve static files
+app.use(express.static('public'));
+
+// Start server
+const server = app.listen(3000, () => {
+  console.log('WSX Express server running on http://localhost:3000');
+});
+```
+
+### Hono Setup
+
+Install the required packages:
+
+```bash
+npm install @wsx/core @wsx/hono
+```
+
+Create a Hono server with WSX:
+
+```javascript
+import { createHonoWSXServer } from "@wsx/hono";
+
+const wsx = createHonoWSXServer();
+const app = wsx.getApp();
+
+// Basic handler
+wsx.on("click", async (request, connection) => {
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Button clicked at ${new Date().toLocaleTimeString()}</div>`
+  };
+});
+
+// Serve static files
+app.get('/', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>WSX with Hono</title>
+        <script src="/wsx.js"></script>
+      </head>
+      <body>
+        <div wx-config='{"url": "ws://localhost:8787/ws"}'>
+          <button wx-send="click" wx-target="#result">Click Me</button>
+          <div id="result"></div>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+export default { fetch: app.fetch };
+```
+
+## Advanced Setup
+
+### Custom Adapter
+
+Create a custom adapter for other frameworks:
+
+```javascript
+import { WSXServer } from "@wsx/core";
+
+class CustomAdapter {
+  constructor(server) {
+    this.server = server;
+    this.app = server;
+  }
+
+  setupWebSocket(path, onMessage) {
+    // Implement WebSocket setup for your framework
+    this.server.on('upgrade', (request, socket, head) => {
+      // Handle WebSocket upgrade
+      const ws = new WebSocket(request, socket, head);
+      
+      const connection = {
+        id: generateConnectionId(),
+        send: (data) => ws.send(data),
+        close: () => ws.close()
+      };
+
+      ws.on('message', (data) => {
+        onMessage(data.toString(), connection);
+      });
+    });
+  }
+
+  getApp() {
+    return this.app;
+  }
+}
+
+// Use custom adapter
+const adapter = new CustomAdapter(yourServer);
+const wsx = new WSXServer(adapter);
+```
+
+### Environment Configuration
+
+```javascript
+// config.js
+const config = {
+  development: {
+    port: 3000,
+    wsPath: '/ws',
+    debug: true
+  },
+  production: {
+    port: process.env.PORT || 8080,
+    wsPath: '/ws',
+    debug: false
+  }
+};
+
+export default config[process.env.NODE_ENV || 'development'];
+```
+
+```javascript
+// server.js
+import config from './config.js';
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer({
+  wsPath: config.wsPath,
+  debug: config.debug
+});
+
+const app = wsx.getApp();
+
+app.listen(config.port, () => {
+  console.log(`Server running on port ${config.port}`);
+});
+```
+
+## Server Configuration
+
+### Express Configuration
+
+```javascript
+import express from 'express';
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer({
+  wsPath: '/ws',                    // WebSocket path
+  cors: true,                       // Enable CORS
+  compression: true,                // Enable compression
+  maxConnections: 1000,             // Max connections
+  heartbeatInterval: 30000,         // Heartbeat interval
+  connectionTimeout: 60000          // Connection timeout
+});
+
+const app = wsx.getApp();
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// CORS for regular routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
+```
+
+### Hono Configuration
+
+```javascript
+import { createHonoWSXServer } from "@wsx/hono";
+import { cors } from 'hono/cors';
+import { compress } from 'hono/compress';
+
+const wsx = createHonoWSXServer({
+  wsPath: '/ws',
+  maxConnections: 1000,
+  heartbeatInterval: 30000
+});
+
+const app = wsx.getApp();
+
+// Middleware
+app.use('*', cors());
+app.use('*', compress());
+
+// Custom middleware
+app.use('*', async (c, next) => {
+  console.log(`${c.req.method} ${c.req.url}`);
+  await next();
+});
+```
+
+## SSL/TLS Configuration
+
+### HTTPS with Express
+
+```javascript
+import https from 'https';
+import fs from 'fs';
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer();
+const app = wsx.getApp();
+
+// SSL options
+const sslOptions = {
+  key: fs.readFileSync('path/to/private-key.pem'),
+  cert: fs.readFileSync('path/to/certificate.pem')
+};
+
+// Create HTTPS server
+const server = https.createServer(sslOptions, app);
+
+// Handle WebSocket upgrade for HTTPS
+server.on('upgrade', (request, socket, head) => {
+  // This is handled by the ExpressAdapter
+});
+
+server.listen(443, () => {
+  console.log('WSX HTTPS server running on port 443');
+});
+```
+
+### WebSocket Secure (WSS)
+
+```javascript
+// Client configuration for WSS
+const config = {
+  url: "wss://yourdomain.com/ws",  // Use wss:// for secure connections
+  debug: false
+};
+```
+
+## Docker Setup
+
+### Dockerfile
+
+```dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy source code
+COPY . .
+
+# Build if needed
+RUN npm run build
+
+# Expose port
+EXPOSE 3000
+
+# Start server
+CMD ["npm", "start"]
+```
+
+### docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  wsx-server:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - wsx-server
+    restart: unless-stopped
+```
+
+### Nginx Configuration
+
+```nginx
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream wsx_backend {
+        server wsx-server:3000;
+    }
+
+    server {
+        listen 80;
+        server_name yourdomain.com;
+
+        location / {
+            proxy_pass http://wsx_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host $host;
+            proxy_cache_bypass $http_upgrade;
+        }
+
+        location /ws {
+            proxy_pass http://wsx_backend;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+    }
+}
+```
+
+## Database Integration
+
+### With MongoDB
+
+```javascript
+import { MongoClient } from 'mongodb';
+import { createExpressWSXServer } from "@wsx/express";
+
+const client = new MongoClient(process.env.MONGODB_URI);
+await client.connect();
+const db = client.db('wsx_app');
+
+const wsx = createExpressWSXServer();
+
+wsx.on("save-data", async (request, connection) => {
+  try {
+    const result = await db.collection('data').insertOne({
+      ...request.data,
+      timestamp: new Date(),
+      connectionId: connection.id
+    });
+
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Data saved with ID: ${result.insertedId}</div>`
+    };
+  } catch (error) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Error saving data: ${error.message}</div>`
+    };
+  }
+});
+```
+
+### With PostgreSQL
+
+```javascript
+import { Pool } from 'pg';
+import { createExpressWSXServer } from "@wsx/express";
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+const wsx = createExpressWSXServer();
+
+wsx.on("save-user", async (request, connection) => {
+  const client = await pool.connect();
+  
+  try {
+    const result = await client.query(
+      'INSERT INTO users (name, email) VALUES ($1, $2) RETURNING id',
+      [request.data.name, request.data.email]
+    );
+
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>User saved with ID: ${result.rows[0].id}</div>`
+    };
+  } catch (error) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Error saving user: ${error.message}</div>`
+    };
+  } finally {
+    client.release();
+  }
+});
+```
+
+## Authentication
+
+### JWT Authentication
+
+```javascript
+import jwt from 'jsonwebtoken';
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer();
+
+// Middleware for authentication
+wsx.use(async (request, connection, next) => {
+  const token = request.headers?.authorization?.replace('Bearer ', '');
+  
+  if (!token) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Authentication required</div>`
+    };
+  }
+
+  try {
+    const user = jwt.verify(token, process.env.JWT_SECRET);
+    connection.sessionData = { ...connection.sessionData, user };
+    return next();
+  } catch (error) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Invalid token</div>`
+    };
+  }
+});
+
+// Protected handler
+wsx.on("protected-action", async (request, connection) => {
+  const user = connection.sessionData?.user;
+  
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div>Welcome, ${user.name}!</div>`
+  };
+});
+```
+
+### Session-based Authentication
+
+```javascript
+import session from 'express-session';
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer();
+const app = wsx.getApp();
+
+// Session middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === 'production' }
+}));
+
+// Authentication check
+wsx.use(async (request, connection, next) => {
+  const sessionId = request.headers?.cookie?.match(/session=([^;]+)/)?.[1];
+  
+  if (!sessionId) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Please log in</div>`
+    };
+  }
+
+  // Verify session (implementation depends on your session store)
+  const session = await getSession(sessionId);
+  if (!session?.user) {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="error">Session expired</div>`
+    };
+  }
+
+  connection.sessionData = { ...connection.sessionData, user: session.user };
+  return next();
+});
+```
+
+## Error Handling
+
+### Global Error Handler
+
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer();
+
+// Global error handler
+wsx.onError((error, request, connection) => {
+  console.error('WSX Error:', error);
+  
+  // Log error details
+  console.error('Request:', request);
+  console.error('Connection:', connection.id);
+  
+  // Return error response
+  return {
+    id: request.id,
+    target: request.target,
+    html: `<div class="error">An error occurred. Please try again.</div>`
+  };
+});
+
+// Handler with error handling
+wsx.on("risky-action", async (request, connection) => {
+  try {
+    const result = await performRiskyOperation(request.data);
+    
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div class="success">Operation completed: ${result}</div>`
+    };
+  } catch (error) {
+    // This will be caught by the global error handler
+    throw error;
+  }
+});
+```
+
+### Validation Middleware
+
+```javascript
+import Joi from 'joi';
+
+// Validation middleware
+function validateRequest(schema) {
+  return async (request, connection, next) => {
+    const { error } = schema.validate(request.data);
+    
+    if (error) {
+      return {
+        id: request.id,
+        target: request.target,
+        html: `<div class="error">Validation error: ${error.details[0].message}</div>`
+      };
+    }
+    
+    return next();
+  };
+}
+
+// Use validation
+const userSchema = Joi.object({
+  name: Joi.string().min(2).max(50).required(),
+  email: Joi.string().email().required()
+});
+
+wsx.on("create-user", 
+  validateRequest(userSchema),
+  async (request, connection) => {
+    // Handler logic here
+  }
+);
+```
+
+## Testing Setup
+
+### Unit Testing
+
+```javascript
+import { jest } from '@jest/globals';
+import { WSXServer } from "@wsx/core";
+
+// Mock adapter for testing
+class MockAdapter {
+  constructor() {
+    this.connections = new Map();
+  }
+
+  setupWebSocket(path, onMessage) {
+    this.onMessage = onMessage;
+  }
+
+  simulateConnection(id) {
+    const connection = {
+      id,
+      send: jest.fn(),
+      close: jest.fn()
+    };
+    this.connections.set(id, connection);
+    return connection;
+  }
+
+  simulateMessage(connectionId, message) {
+    const connection = this.connections.get(connectionId);
+    if (connection) {
+      this.onMessage(message, connection);
+    }
+  }
+
+  getApp() {
+    return {};
+  }
+}
+
+// Test
+describe('WSX Server', () => {
+  let wsx;
+  let adapter;
+
+  beforeEach(() => {
+    adapter = new MockAdapter();
+    wsx = new WSXServer(adapter);
+  });
+
+  test('should handle basic request', async () => {
+    wsx.on('test-action', async (request, connection) => {
+      return {
+        id: request.id,
+        target: request.target,
+        html: '<div>Test response</div>'
+      };
+    });
+
+    const connection = adapter.simulateConnection('test-conn');
+    const request = {
+      id: 'test-id',
+      handler: 'test-action',
+      target: '#test-target'
+    };
+
+    adapter.simulateMessage('test-conn', JSON.stringify(request));
+
+    expect(connection.send).toHaveBeenCalledWith(
+      JSON.stringify({
+        id: 'test-id',
+        target: '#test-target',
+        html: '<div>Test response</div>'
+      })
+    );
+  });
+});
+```
+
+### Integration Testing
+
+```javascript
+import request from 'supertest';
+import WebSocket from 'ws';
+import { createExpressWSXServer } from "@wsx/express";
+
+describe('WSX Integration', () => {
+  let server;
+  let wsx;
+
+  beforeEach(async () => {
+    wsx = createExpressWSXServer();
+    const app = wsx.getApp();
+    server = app.listen(0); // Random port
+  });
+
+  afterEach(async () => {
+    server.close();
+  });
+
+  test('should handle WebSocket connection', (done) => {
+    const port = server.address().port;
+    const ws = new WebSocket(`ws://localhost:${port}/ws`);
+
+    ws.on('open', () => {
+      ws.send(JSON.stringify({
+        id: 'test-id',
+        handler: 'test-action',
+        target: '#test-target'
+      }));
+    });
+
+    ws.on('message', (data) => {
+      const response = JSON.parse(data);
+      expect(response.id).toBe('test-id');
+      ws.close();
+      done();
+    });
+  });
+});
+```
+
+## Performance Optimization
+
+### Connection Pooling
+
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer({
+  maxConnections: 10000,
+  heartbeatInterval: 30000,
+  connectionTimeout: 60000,
+  
+  // Connection pooling options
+  poolSize: 100,
+  poolTimeout: 30000
+});
+```
+
+### Message Compression
+
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer({
+  compression: true,
+  compressionOptions: {
+    threshold: 1024,      // Compress messages > 1KB
+    level: 6,             // Compression level (1-9)
+    windowBits: 15        // Window bits
+  }
+});
+```
+
+### Clustering
+
+```javascript
+import cluster from 'cluster';
+import { cpus } from 'os';
+
+if (cluster.isMaster) {
+  // Fork workers
+  for (let i = 0; i < cpus().length; i++) {
+    cluster.fork();
+  }
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.log(`Worker ${worker.process.pid} died`);
+    cluster.fork();
+  });
+} else {
+  // Worker process
+  import('./server.js');
+}
+```
+
+## Deployment
+
+### PM2 Configuration
+
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'wsx-server',
+    script: './server.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 3000
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_file: './logs/combined.log'
+  }]
+};
+```
+
+### Systemd Service
+
+```ini
+# /etc/systemd/system/wsx-server.service
+[Unit]
+Description=WSX Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/opt/wsx-server
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## Monitoring
+
+### Health Checks
+
+```javascript
+import { createExpressWSXServer } from "@wsx/express";
+
+const wsx = createExpressWSXServer();
+const app = wsx.getApp();
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    connections: wsx.getConnectionCount(),
+    uptime: process.uptime()
+  });
+});
+
+// Metrics endpoint
+app.get('/metrics', (req, res) => {
+  res.json({
+    connections: wsx.getConnectionCount(),
+    memory: process.memoryUsage(),
+    cpu: process.cpuUsage()
+  });
+});
+```
+
+### Logging
+
+```javascript
+import winston from 'winston';
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+});
+
+// Log WSX events
+wsx.onConnection((connection) => {
+  logger.info('Connection established', { connectionId: connection.id });
+});
+
+wsx.onDisconnection((connection) => {
+  logger.info('Connection closed', { connectionId: connection.id });
+});
+```
+
+## Next Steps
+
+- Learn about [Server Handlers](/server/handlers) for processing requests
+- Explore [Broadcasting](/server/broadcasting) for real-time updates
+- Understand [Middleware](/server/middleware) for request processing

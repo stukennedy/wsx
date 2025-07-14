@@ -23,11 +23,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/wsx.git"
+    "url": "https://github.com/stukennedy/wsx.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/wsx/issues"
+    "url": "https://github.com/stukennedy/wsx/issues"
   },
-  "homepage": "https://github.com/yourusername/wsx#readme",
+  "homepage": "https://github.com/stukennedy/wsx#readme",
   "license": "MIT"
 }

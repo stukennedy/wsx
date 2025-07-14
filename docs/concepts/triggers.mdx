@@ -1,0 +1,309 @@
+---
+title: "Triggers"
+description: "Understanding client-side triggers in WSX"
+---
+
+# Triggers
+
+Triggers define when and how client-side events are sent to your WSX server. They provide sophisticated control over event timing, conditions, and behavior.
+
+## Basic Triggers
+
+### Default Triggers
+Without specifying `wx-trigger`, elements use default triggers:
+
+```html
+<!-- Button defaults to 'click' -->
+<button wx-send="my-action">Click Me</button>
+
+<!-- Form defaults to 'submit' -->
+<form wx-send="form-action">
+  <input name="data" />
+  <button type="submit">Submit</button>
+</form>
+
+<!-- Input defaults to 'input' -->
+<input wx-send="search-action" />
+```
+
+### Explicit Triggers
+Specify triggers using the `wx-trigger` attribute:
+
+```html
+<button wx-send="my-action" wx-trigger="click">Click Me</button>
+<input wx-send="search" wx-trigger="input" />
+<div wx-send="hover-action" wx-trigger="mouseenter">Hover Me</div>
+```
+
+## Trigger Events
+
+### Common Events
+- `click` - Mouse clicks
+- `submit` - Form submissions
+- `input` - Input value changes
+- `change` - Input value changes (on blur)
+- `keyup` - Key release events
+- `keydown` - Key press events
+- `mouseenter` - Mouse enters element
+- `mouseleave` - Mouse leaves element
+- `focus` - Element gains focus
+- `blur` - Element loses focus
+
+### Examples
+```html
+<!-- Key events -->
+<input wx-send="key-action" wx-trigger="keyup" />
+
+<!-- Mouse events -->
+<div wx-send="hover-start" wx-trigger="mouseenter">Hover Area</div>
+<div wx-send="hover-end" wx-trigger="mouseleave">Hover Area</div>
+
+<!-- Focus events -->
+<input wx-send="focus-action" wx-trigger="focus" />
+<input wx-send="blur-action" wx-trigger="blur" />
+```
+
+## Trigger Modifiers
+
+### Throttling
+Limit the frequency of requests:
+
+```html
+<!-- Max 1 request per 500ms -->
+<input wx-send="search" wx-trigger="input throttle:500ms" />
+
+<!-- Max 1 request per 2 seconds -->
+<button wx-send="save" wx-trigger="click throttle:2s">Save</button>
+```
+
+### Debouncing (Queue)
+Delay requests until activity stops:
+
+```html
+<!-- Wait 300ms after last input -->
+<input wx-send="search" wx-trigger="input queue" />
+
+<!-- Custom delay -->
+<input wx-send="search" wx-trigger="input queue:1s" />
+```
+
+### Delays
+Add delays before sending requests:
+
+```html
+<!-- 1 second delay after click -->
+<button wx-send="delayed-action" wx-trigger="click delay:1s">
+  Delayed Action
+</button>
+
+<!-- 500ms delay after input -->
+<input wx-send="delayed-search" wx-trigger="input delay:500ms" />
+```
+
+## Conditional Triggers
+
+### Key Conditions
+Trigger only on specific keys:
+
+```html
+<!-- Only on Enter key -->
+<input wx-send="search" wx-trigger="keyup[Enter]" />
+
+<!-- Only on Escape key -->
+<input wx-send="cancel" wx-trigger="keyup[Escape]" />
+
+<!-- Only with Ctrl key -->
+<input wx-send="save" wx-trigger="keyup[ctrlKey]" />
+
+<!-- Only with Shift key -->
+<input wx-send="special" wx-trigger="keyup[shiftKey]" />
+
+<!-- Combination: Ctrl+Enter -->
+<textarea wx-send="submit" wx-trigger="keyup[ctrlKey+Enter]"></textarea>
+```
+
+### Change Detection
+Only trigger when values actually change:
+
+```html
+<!-- Only when value changes -->
+<input wx-send="changed-search" wx-trigger="blur changed" />
+
+<!-- Combine with other modifiers -->
+<input wx-send="changed-search" wx-trigger="input changed throttle:300ms" />
+```
+
+### Once Modifier
+Trigger only once:
+
+```html
+<!-- Button can only be clicked once -->
+<button wx-send="once-action" wx-trigger="click once">
+  Click Once Only
+</button>
+```
+
+## Multiple Triggers
+
+### Combining Triggers
+Use multiple events for the same action:
+
+```html
+<!-- Trigger on both click and Enter -->
+<button wx-send="submit" wx-trigger="click, keyup[Enter]">
+  Submit
+</button>
+
+<!-- Different events, same action -->
+<input wx-send="auto-save" wx-trigger="blur, input throttle:2s" />
+```
+
+### Different Actions
+Different triggers for different actions:
+
+```html
+<input 
+  wx-send="immediate-search" 
+  wx-trigger="input throttle:300ms"
+  wx-send-enter="full-search"
+  wx-trigger-enter="keyup[Enter]"
+/>
+```
+
+## Advanced Trigger Patterns
+
+### Conditional Logic
+```html
+<!-- Only when input has value -->
+<input wx-send="search" wx-trigger="input[value]" />
+
+<!-- Only when checkbox is checked -->
+<input type="checkbox" wx-send="toggle" wx-trigger="change[checked]" />
+
+<!-- Only when specific value -->
+<select wx-send="category-change" wx-trigger="change[value='premium']">
+  <option value="basic">Basic</option>
+  <option value="premium">Premium</option>
+</select>
+```
+
+### Form Validation
+```html
+<!-- Only when form is valid -->
+<form wx-send="validate-form" wx-trigger="input[checkValidity()]">
+  <input required />
+  <button type="submit">Submit</button>
+</form>
+```
+
+### Progressive Enhancement
+```html
+<!-- Fallback for non-JavaScript users -->
+<form action="/fallback" method="post" wx-send="ajax-submit">
+  <input name="data" />
+  <button type="submit">Submit</button>
+</form>
+```
+
+## Trigger Timing
+
+### Immediate Triggers
+```html
+<!-- No delay -->
+<button wx-send="immediate" wx-trigger="click">Immediate</button>
+```
+
+### Delayed Triggers
+```html
+<!-- 1 second delay -->
+<button wx-send="delayed" wx-trigger="click delay:1s">Delayed</button>
+```
+
+### Throttled Triggers
+```html
+<!-- Max once per 500ms -->
+<input wx-send="throttled" wx-trigger="input throttle:500ms" />
+```
+
+### Debounced Triggers
+```html
+<!-- Wait 300ms after last event -->
+<input wx-send="debounced" wx-trigger="input queue:300ms" />
+```
+
+## Real-World Examples
+
+### Live Search
+```html
+<input 
+  type="text" 
+  placeholder="Search..." 
+  wx-send="search"
+  wx-target="#results"
+  wx-trigger="input throttle:300ms changed"
+/>
+```
+
+### Auto-Save Form
+```html
+<form wx-send="auto-save" wx-trigger="input throttle:2s">
+  <input name="title" />
+  <textarea name="content"></textarea>
+</form>
+```
+
+### Keyboard Shortcuts
+```html
+<div wx-send="save" wx-trigger="keyup[ctrlKey+s]">
+  Press Ctrl+S to save
+</div>
+```
+
+### Progressive Loading
+```html
+<div 
+  wx-send="load-more" 
+  wx-target="#content"
+  wx-trigger="scroll[bottom]"
+>
+  Scroll to load more...
+</div>
+```
+
+## Custom Triggers
+
+### JavaScript Events
+```javascript
+// Trigger custom events
+document.querySelector('#my-element').dispatchEvent(
+  new CustomEvent('my-custom-event', { detail: { data: 'value' } })
+);
+```
+
+```html
+<!-- Listen for custom events -->
+<div wx-send="custom-action" wx-trigger="my-custom-event">
+  Custom Event Target
+</div>
+```
+
+### Programmatic Triggers
+```javascript
+// Trigger WSX actions programmatically
+wsx.trigger('#my-element', { customData: 'value' });
+```
+
+## Best Practices
+
+1. **Choose Appropriate Events**: Use the right trigger for the user interaction
+2. **Throttle Heavy Operations**: Use throttling for expensive operations like search
+3. **Debounce User Input**: Use queue for final input validation
+4. **Provide Feedback**: Show loading states for delayed actions
+5. **Consider Accessibility**: Ensure triggers work with keyboard navigation
+6. **Progressive Enhancement**: Provide fallbacks for critical functionality
+
+## Next Steps
+
+- Learn about [Swaps](/concepts/swaps) for content replacement
+- Explore [Out-of-Band Updates](/concepts/oob-updates) for multiple element updates
+- Understand [Client Configuration](/client/configuration) for trigger customization

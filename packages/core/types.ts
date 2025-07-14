@@ -10,14 +10,14 @@ export interface WSXRequest {
 export interface WSXResponse {
   id: string;
   target: string;
-  html: string;
+  html: string | { toString(): string } | Promise<{ toString(): string }>;
   swap?: string;
   oob?: WSXOOBUpdate[];
 }
 
 export interface WSXOOBUpdate {
   target: string;
-  html: string;
+  html: string | { toString(): string } | Promise<{ toString(): string }>;
   swap?: string;
 }
 
@@ -34,7 +34,10 @@ export type WSXHandler = (
 ) => Promise<WSXResponse | WSXResponse[] | void>;
 
 export interface WSXServerAdapter {
-  setupWebSocket(path: string, onMessage: (data: string, connection: WSXConnection) => void): void;
+  setupWebSocket(
+    path: string,
+    onMessage: (data: string, connection: WSXConnection) => void
+  ): void;
   onConnection?(connection: WSXConnection): void;
   onDisconnection?(connection: WSXConnection): void;
   getApp(): any;

@@ -14,3 +14,5 @@ export type {
 export function createWSXServer(adapter: import("./types").WSXServerAdapter) {
   return new WSXServer(adapter);
 }
+
+export { html } from "./utils";

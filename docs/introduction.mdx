@@ -1,0 +1,142 @@
+---
+title: Introduction
+description: "Welcome to WSX - WebSocket Extensions for HTMX-style Hypermedia"
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="Hero Light"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="Hero Dark"
+/>
+
+## What is WSX?
+
+**WSX** is a modern, framework-agnostic WebSocket library that brings the simplicity and power of HTMX to real-time web applications. It enables developers to build reactive, real-time applications using familiar hypermedia patterns with WebSocket communication.
+
+<CardGroup cols={2}>
+  <Card title="Real-time Hypermedia" icon="bolt" href="/concepts/architecture">
+    Apply HTMX-style patterns to WebSocket communications for intuitive
+    real-time updates
+  </Card>
+  <Card title="Framework Agnostic" icon="code" href="/frameworks/express">
+    Works with Express, Hono, and other frameworks through a clean adapter
+    system
+  </Card>
+  <Card title="Advanced Triggers" icon="cursor-click" href="/concepts/triggers">
+    Rich trigger system with throttling, debouncing, delays, and conditional
+    execution
+  </Card>
+  <Card
+    title="Out-of-Band Updates"
+    icon="arrows-repeat"
+    href="/concepts/oob-updates"
+  >
+    Update multiple DOM elements from a single WebSocket response
+  </Card>
+</CardGroup>
+
+## Key Features
+
+<AccordionGroup>
+  <Accordion title="🔄 Real-time Hypermedia">
+    WSX brings the familiar HTMX patterns to WebSocket communication, making
+    real-time applications as simple as traditional hypermedia.
+  </Accordion>
+
+  <Accordion title="📡 Out-of-Band Updates">
+    Update multiple DOM elements from a single WebSocket response, enabling
+    complex UI updates with minimal code.
+  </Accordion>
+
+  <Accordion title="🎯 Advanced Triggers">
+    Rich trigger system supporting throttling, debouncing, delays, conditions,
+    and more for sophisticated user interactions.
+  </Accordion>
+
+  <Accordion title="🔧 Framework Agnostic">
+    Works with Express, Hono, and other frameworks through a clean adapter
+    system. Easy to integrate with existing applications.
+  </Accordion>
+
+  <Accordion title="🌐 Broadcasting">
+    Send updates to all connected clients or specific connections with simple
+    API calls.
+  </Accordion>
+
+  <Accordion title="⚡ Swap Modifiers">
+    Control timing, positioning, and animation of DOM updates with powerful swap
+    specifications.
+  </Accordion>
+</AccordionGroup>
+
+## Why Choose WSX?
+
+### Simple Yet Powerful
+
+WSX combines the simplicity of HTMX with the power of WebSockets, allowing you to build complex real-time applications with minimal JavaScript.
+
+### Familiar Patterns
+
+If you know HTMX, you already know WSX. The same declarative approach, the same swap patterns, just over WebSockets.
+
+### Production Ready
+
+Built with TypeScript, comprehensive error handling, and battle-tested WebSocket patterns.
+
+## Quick Example
+
+Here's a simple example of a real-time counter:
+
+```html
+<!-- Client -->
+<div wx-config='{"url": "ws://localhost:3000/ws"}'>
+  <div id="counter">Count: 0</div>
+  <button wx-send="increment" wx-target="#counter">Increment</button>
+</div>
+```
+
+```javascript
+// Server
+wsx.on("increment", async (request, connection) => {
+  const newCount = getCount() + 1;
+
+  // Update all connected clients
+  wsx.broadcast("#counter", `Count: ${newCount}`);
+
+  return {
+    id: request.id,
+    target: request.target,
+    html: `Count: ${newCount}`,
+  };
+});
+```
+
+## Getting Started
+
+Ready to dive in? Let's get you up and running with WSX:
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get WSX running in under 5 minutes with our quick start guide
+  </Card>
+  <Card title="Installation" icon="download" href="/installation">
+    Install WSX in your project with npm or yarn
+  </Card>
+</CardGroup>
+
+## Community & Support
+
+Join our growing community of developers building real-time applications with WSX:
+
+- **GitHub**: [github.com/stukennedy/wsx](https://github.com/stukennedy/wsx)
+- **Discord**: Join our Discord server for real-time help
+- **Twitter**: Follow [@wsx_dev](https://twitter.com/wsx_dev) for updates
+
+## Contributing
+
+WSX is open source and contributions are welcome! Check out our [contributing guide](https://github.com/stukennedy/wsx/blob/main/CONTRIBUTING.md) to get started.

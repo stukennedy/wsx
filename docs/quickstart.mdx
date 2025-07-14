@@ -1,0 +1,265 @@
+---
+title: Quick Start
+description: "Get WSX running in under 5 minutes"
+---
+
+## Overview
+
+This quick start guide will get you up and running with WSX in under 5 minutes. We'll build a simple real-time counter that updates across all connected clients.
+
+## Prerequisites
+
+- Node.js 18 or later
+- npm or yarn
+
+## Step 1: Install WSX
+
+Choose your framework and install the corresponding packages:
+
+<CodeGroup>
+
+```bash Express
+npm install @wsx/core @wsx/express
+```
+
+```bash Hono
+npm install @wsx/core @wsx/hono
+```
+
+</CodeGroup>
+
+## Step 2: Create Your Server
+
+<CodeGroup>
+
+```javascript Express
+import { createExpressWSXServer } from "@wsx/express";
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Create WSX server
+const wsx = createExpressWSXServer();
+const app = wsx.getApp();
+
+// Global counter
+let counter = 0;
+
+// Serve static files
+app.use(express.static(path.join(__dirname, "public")));
+
+// Serve HTML page
+app.get("/", (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>WSX Quick Start</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <script src="/wsx.js"></script>
+    </head>
+    <body class="bg-gray-100 p-8">
+      <div wx-config='{"url": "ws://localhost:3000/ws", "debug": true}'>
+        <h1 class="text-2xl font-bold mb-4">WSX Counter</h1>
+        <div id="counter" class="text-xl mb-4">Count: ${counter}</div>
+        <button 
+          wx-send="increment" 
+          wx-target="#counter"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Increment
+        </button>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+// Handle increment events
+wsx.on("increment", async (request, connection) => {
+  counter++;
+
+  // Broadcast to all connected clients
+  wsx.broadcast("#counter", `Count: ${counter}`);
+
+  return {
+    id: request.id,
+    target: request.target,
+    html: `Count: ${counter}`,
+  };
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+```
+
+```javascript Hono
+import { createHonoWSXServer } from "@wsx/hono";
+
+// Create WSX server
+const wsx = createHonoWSXServer();
+const app = wsx.getApp();
+
+// Global counter
+let counter = 0;
+
+// Serve HTML page
+app.get("/", (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>WSX Quick Start</title>
+      <script src="https://cdn.tailwindcss.com"></script>
+      <script src="/wsx.js"></script>
+    </head>
+    <body class="bg-gray-100 p-8">
+      <div wx-config='{"url": "ws://localhost:8787/ws", "debug": true}'>
+        <h1 class="text-2xl font-bold mb-4">WSX Counter</h1>
+        <div id="counter" class="text-xl mb-4">Count: ${counter}</div>
+        <button 
+          wx-send="increment" 
+          wx-target="#counter"
+          class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+        >
+          Increment
+        </button>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
+// Handle increment events
+wsx.on("increment", async (request, connection) => {
+  counter++;
+
+  // Broadcast to all connected clients
+  wsx.broadcast("#counter", `Count: ${counter}`);
+
+  return {
+    id: request.id,
+    target: request.target,
+    html: `Count: ${counter}`,
+  };
+});
+
+export default {
+  fetch: app.fetch,
+};
+```
+
+</CodeGroup>
+
+## Step 3: Add the Client Library
+
+Copy the WSX client library to your public directory:
+
+```bash
+cp node_modules/@wsx/client/wsx.js public/wsx.js
+```
+
+Or download it from the [GitHub repository](https://github.com/stukennedy/wsx/blob/main/packages/client/wsx.js).
+
+## Step 4: Run Your Application
+
+<CodeGroup>
+
+```bash Express
+node server.js
+```
+
+```bash Hono
+npm run dev
+```
+
+</CodeGroup>
+
+## Step 5: Test It Out
+
+1. Open your browser to `http://localhost:3000` (or `http://localhost:8787` for Hono)
+2. Click the "Increment" button
+3. Open another browser tab/window to the same URL
+4. Click the button in either tab - both will update in real-time!
+
+## What Just Happened?
+
+Let's break down what we built:
+
+### HTML Attributes
+
+- `wx-config`: Configures the WebSocket connection
+- `wx-send`: Defines the handler name to call on the server
+- `wx-target`: Specifies which element to update with the response
+
+### Server Handler
+
+The `wsx.on("increment", ...)` handler:
+
+1. Increments the counter
+2. Broadcasts the update to all connected clients
+3. Returns a response for the triggering client
+
+### Real-time Updates
+
+When you click the button:
+
+1. WSX sends a WebSocket message to the server
+2. The server processes the request and updates the counter
+3. The server broadcasts the new count to all connected clients
+4. All browser windows update simultaneously
+
+## Next Steps
+
+Now that you have WSX running, explore these features:
+
+<CardGroup cols={2}>
+  <Card title="Advanced Triggers" icon="cursor-click" href="/concepts/triggers">
+    Learn about throttling, debouncing, and conditional triggers
+  </Card>
+  <Card
+    title="Out-of-Band Updates"
+    icon="arrows-repeat"
+    href="/concepts/oob-updates"
+  >
+    Update multiple DOM elements from a single response
+  </Card>
+  <Card title="Form Handling" icon="square-check" href="/examples/forms">
+    Build real-time forms with validation and submission
+  </Card>
+  <Card title="Broadcasting" icon="broadcast-tower" href="/server/broadcasting">
+    Send targeted updates to specific clients or groups
+  </Card>
+</CardGroup>
+
+## Common Issues
+
+<AccordionGroup>
+  <Accordion title="WebSocket connection fails">
+    Make sure your WebSocket URL in `wx-config` matches your server
+    configuration. Check the browser console for connection errors.
+  </Accordion>
+
+  <Accordion title="Button clicks don't work">
+    Ensure the WSX client library is loaded before the page content. Check that
+    the `wx-send` attribute is set correctly.
+  </Accordion>
+
+  <Accordion title="Updates aren't real-time">
+    Verify that your server handler is calling `wsx.broadcast()` to update all
+    connected clients, not just returning a response.
+  </Accordion>
+</AccordionGroup>
+
+## Ready for More?
+
+Check out our comprehensive examples:
+
+- [Real-time Chat Application](/examples/chat)
+- [Live Search with Debouncing](/examples/live-search)
+- [Dashboard with Broadcasting](/examples/dashboard)

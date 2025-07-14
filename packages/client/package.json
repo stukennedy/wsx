@@ -22,7 +22,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/wsx.git",
+    "url": "https://github.com/stukennedy/wsx.git",
     "directory": "packages/client"
   }
 }

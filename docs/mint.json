@@ -1,0 +1,131 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "WSX Documentation",
+  "logo": {
+    "dark": "/logo/dark.png",
+    "light": "/logo/light.png"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#3B82F6",
+    "light": "#60A5FA",
+    "dark": "#1E40AF",
+    "anchors": {
+      "from": "#3B82F6",
+      "to": "#1E40AF"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/stukennedy/wsx"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "/quickstart"
+  },
+  "tabs": [
+    {
+      "name": "API Reference",
+      "url": "api-reference"
+    },
+    {
+      "name": "Examples",
+      "url": "examples"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "Documentation",
+      "icon": "book-open-cover",
+      "url": "introduction"
+    },
+    {
+      "name": "Community",
+      "icon": "slack",
+      "url": "https://discord.gg/wsx"
+    },
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/stukennedy/wsx"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Get Started",
+      "pages": ["introduction", "quickstart", "installation"]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "concepts/architecture",
+        "concepts/connections",
+        "concepts/handlers",
+        "concepts/triggers",
+        "concepts/swaps",
+        "concepts/oob-updates"
+      ]
+    },
+    {
+      "group": "Client Guide",
+      "pages": [
+        "client/setup",
+        "client/attributes",
+        "client/triggers",
+        "client/events",
+        "client/configuration"
+      ]
+    },
+    {
+      "group": "Server Guide",
+      "pages": [
+        "server/setup",
+        "server/handlers",
+        "server/broadcasting",
+        "server/adapters",
+        "server/middleware"
+      ]
+    },
+    {
+      "group": "Framework Integration",
+      "pages": [
+        "frameworks/express",
+        "frameworks/hono",
+        "frameworks/custom-adapter"
+      ]
+    },
+    {
+      "group": "Examples",
+      "pages": [
+        "examples/chat",
+        "examples/live-search",
+        "examples/dashboard",
+        "examples/forms",
+        "examples/notifications"
+      ]
+    },
+    {
+      "group": "API Reference",
+      "pages": [
+        "api-reference/server",
+        "api-reference/client",
+        "api-reference/types"
+      ]
+    },
+    {
+      "group": "Advanced",
+      "pages": [
+        "advanced/performance",
+        "advanced/security",
+        "advanced/debugging",
+        "advanced/testing"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/stukennedy/wsx",
+    "twitter": "https://twitter.com/wsx_dev"
+  }
+}
