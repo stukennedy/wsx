@@ -1,6 +1,6 @@
 {
-  "name": "@wsx/core",
-  "version": "1.0.0",
+  "name": "@wsx-sh/core",
+  "version": "1.0.1",
   "description": "Core WebSocket server abstraction for WSX",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

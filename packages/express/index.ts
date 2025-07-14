@@ -1,7 +1,12 @@
-import express from 'express';
-import { WebSocket, WebSocketServer } from 'ws';
-import { IncomingMessage } from 'http';
-import { WSXServer, WSXServerAdapter, WSXConnection, WSXServerConfig } from '@wsx/core';
+import express from "express";
+import { WebSocket, WebSocketServer } from "ws";
+import { IncomingMessage } from "http";
+import {
+  WSXServer,
+  WSXServerAdapter,
+  WSXConnection,
+  WSXServerConfig,
+} from "../core";
 
 export class ExpressAdapter implements WSXServerAdapter {
   private app: express.Application;
@@ -13,11 +18,14 @@ export class ExpressAdapter implements WSXServerAdapter {
     this.app = express();
   }
 
-  setupWebSocket(path: string, onMessage: (data: string, connection: WSXConnection) => void): void {
+  setupWebSocket(
+    path: string,
+    onMessage: (data: string, connection: WSXConnection) => void
+  ): void {
     // Create WebSocket server
     this.wss = new WebSocketServer({ noServer: true });
 
-    this.wss.on('connection', (ws: WebSocket, request: IncomingMessage) => {
+    this.wss.on("connection", (ws: WebSocket, request: IncomingMessage) => {
       const connectionId = `conn_${++this.connectionCounter}`;
       this.wsToConnectionId.set(ws, connectionId);
 
@@ -30,23 +38,23 @@ export class ExpressAdapter implements WSXServerAdapter {
               ws.send(data);
             }
           } catch (error) {
-            console.error('Error sending data:', error);
+            console.error("Error sending data:", error);
           }
         },
         close: () => {
           try {
             ws.close();
           } catch (error) {
-            console.error('Error closing connection:', error);
+            console.error("Error closing connection:", error);
           }
-        }
+        },
       };
 
-      ws.on('message', async (data) => {
+      ws.on("message", async (data) => {
         await onMessage(data.toString(), connection);
       });
 
-      ws.on('close', () => {
+      ws.on("close", () => {
         this.wsToConnectionId.delete(ws);
         console.log(`WSX connection closed: ${connectionId}`);
         if (this.onDisconnection) {
@@ -54,8 +62,8 @@ export class ExpressAdapter implements WSXServerAdapter {
         }
       });
 
-      ws.on('error', (error) => {
-        console.error('WSX WebSocket error:', error);
+      ws.on("error", (error) => {
+        console.error("WSX WebSocket error:", error);
       });
 
       if (this.onConnection) {
@@ -65,9 +73,9 @@ export class ExpressAdapter implements WSXServerAdapter {
 
     // Handle upgrade requests
     this.app.use((req, res, next) => {
-      if (req.url === path && req.headers.upgrade === 'websocket') {
+      if (req.url === path && req.headers.upgrade === "websocket") {
         this.wss!.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws) => {
-          this.wss!.emit('connection', ws, req);
+          this.wss!.emit("connection", ws, req);
         });
       } else {
         next();

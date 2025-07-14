@@ -1,5 +1,5 @@
 {
-  "name": "@wsx/workspace",
+  "name": "@wsx-sh/workspace",
   "version": "1.0.0",
   "description": "WSX monorepo - Framework-agnostic WebSocket library for reactive web applications",
   "private": true,
@@ -8,11 +8,11 @@
     "examples/*"
   ],
   "scripts": {
-    "build": "bun run --filter='@wsx/core' build && bun run --filter='@wsx/*' build",
-    "dev": "bun run --filter='@wsx/*' dev",
-    "test": "bun run --filter='@wsx/*' test",
-    "clean": "bun run --filter='@wsx/*' clean",
-    "lint": "bun run --filter='@wsx/*' lint",
+    "build": "bun run --filter='@wsx-sh/core' build && bun run --filter='@wsx-sh/*' build",
+    "dev": "bun run --filter='@wsx-sh/*' dev",
+    "test": "bun run --filter='@wsx-sh/*' test",
+    "clean": "bun run --filter='@wsx-sh/*' clean",
+    "lint": "bun run --filter='@wsx-sh/*' lint",
     "example:hono": "cd examples/hono && bun run dev",
     "example:express": "cd examples/express && bun run start"
   },

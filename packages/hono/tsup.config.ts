@@ -1,12 +1,12 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from "tsup";
 
 export default defineConfig({
-  entry: ['index.ts'],
-  format: ['esm', 'cjs'],
+  entry: ["index.ts"],
+  format: ["esm", "cjs"],
   dts: true,
   splitting: false,
   sourcemap: true,
   clean: true,
-  outDir: 'dist',
-  external: ['hono', 'hono/cloudflare-workers', '@wsx/core'],
+  outDir: "dist",
+  external: ["hono", "hono/cloudflare-workers", "@wsx-sh/core"],
 });

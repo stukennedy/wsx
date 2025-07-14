@@ -10,218 +10,228 @@ This example demonstrates how to create a real-time dashboard that displays live
 ## Basic Dashboard Setup
 
 ### HTML Structure
+
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>WSX Real-Time Dashboard</title>
-  <script src="/wsx.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    
-    .dashboard {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    
-    .dashboard-header {
-      display: flex;
-      justify-content: between;
-      align-items: center;
-      margin-bottom: 30px;
-    }
-    
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-    
-    .stat-card {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      text-align: center;
-    }
-    
-    .stat-value {
-      font-size: 2.5em;
-      font-weight: bold;
-      color: #2563eb;
-      margin: 10px 0;
-    }
-    
-    .stat-label {
-      color: #6b7280;
-      font-size: 0.9em;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .stat-change {
-      font-size: 0.8em;
-      margin-top: 5px;
-    }
-    
-    .stat-change.positive {
-      color: #10b981;
-    }
-    
-    .stat-change.negative {
-      color: #ef4444;
-    }
-    
-    .chart-container {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    
-    .chart-container h3 {
-      margin-top: 0;
-      color: #374151;
-    }
-    
-    .recent-activity {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .activity-item {
-      display: flex;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #f3f4f6;
-    }
-    
-    .activity-item:last-child {
-      border-bottom: none;
-    }
-    
-    .activity-time {
-      color: #6b7280;
-      font-size: 0.8em;
-      margin-left: auto;
-    }
-    
-    .status-indicator {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      margin-right: 10px;
-    }
-    
-    .status-online {
-      background-color: #10b981;
-    }
-    
-    .status-offline {
-      background-color: #ef4444;
-    }
-    
-    .refresh-btn {
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    
-    .refresh-btn:hover {
-      background: #1d4ed8;
-    }
-  </style>
-</head>
-<body>
-  <div wx-config='{"url": "ws://localhost:3000/ws"}'>
-    <div class="dashboard">
-      <div class="dashboard-header">
-        <h1>Real-Time Dashboard</h1>
-        <div>
-          <button class="refresh-btn" wx-send="refresh-dashboard" wx-target="#dashboard-content">
-            Refresh Data
-          </button>
+  <head>
+    <title>WSX Real-Time Dashboard</title>
+    <script src="/wsx.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .dashboard {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .dashboard-header {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+        margin-bottom: 30px;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 2.5em;
+        font-weight: bold;
+        color: #2563eb;
+        margin: 10px 0;
+      }
+
+      .stat-label {
+        color: #6b7280;
+        font-size: 0.9em;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .stat-change {
+        font-size: 0.8em;
+        margin-top: 5px;
+      }
+
+      .stat-change.positive {
+        color: #10b981;
+      }
+
+      .stat-change.negative {
+        color: #ef4444;
+      }
+
+      .chart-container {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      .chart-container h3 {
+        margin-top: 0;
+        color: #374151;
+      }
+
+      .recent-activity {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .activity-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f3f4f6;
+      }
+
+      .activity-item:last-child {
+        border-bottom: none;
+      }
+
+      .activity-time {
+        color: #6b7280;
+        font-size: 0.8em;
+        margin-left: auto;
+      }
+
+      .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 10px;
+      }
+
+      .status-online {
+        background-color: #10b981;
+      }
+
+      .status-offline {
+        background-color: #ef4444;
+      }
+
+      .refresh-btn {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .refresh-btn:hover {
+        background: #1d4ed8;
+      }
+    </style>
+  </head>
+  <body>
+    <div wx-config='{"url": "ws://localhost:3000/ws"}'>
+      <div class="dashboard">
+        <div class="dashboard-header">
+          <h1>Real-Time Dashboard</h1>
+          <div>
+            <button
+              class="refresh-btn"
+              wx-send="refresh-dashboard"
+              wx-target="#dashboard-content"
+            >
+              Refresh Data
+            </button>
+          </div>
         </div>
-      </div>
-      
-      <div id="dashboard-content">
-        <div id="stats-grid" class="stats-grid">
-          <!-- Stats will be populated by WSX -->
-        </div>
-        
-        <div class="chart-container">
-          <h3>Real-Time Metrics</h3>
-          <canvas id="metricsChart" width="400" height="200"></canvas>
-        </div>
-        
-        <div class="recent-activity">
-          <h3>Recent Activity</h3>
-          <div id="activity-feed">
-            <!-- Activity will be populated by WSX -->
+
+        <div id="dashboard-content">
+          <div id="stats-grid" class="stats-grid">
+            <!-- Stats will be populated by WSX -->
+          </div>
+
+          <div class="chart-container">
+            <h3>Real-Time Metrics</h3>
+            <canvas id="metricsChart" width="400" height="200"></canvas>
+          </div>
+
+          <div class="recent-activity">
+            <h3>Recent Activity</h3>
+            <div id="activity-feed">
+              <!-- Activity will be populated by WSX -->
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <script>
-    // Initialize chart
-    const ctx = document.getElementById('metricsChart').getContext('2d');
-    const metricsChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [{
-          label: 'Active Users',
-          data: [],
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.1)',
-          tension: 0.4
-        }, {
-          label: 'Requests/min',
-          data: [],
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          tension: 0.4
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
-      }
-    });
+    <script>
+      // Initialize chart
+      const ctx = document.getElementById("metricsChart").getContext("2d");
+      const metricsChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: "Active Users",
+              data: [],
+              borderColor: "#2563eb",
+              backgroundColor: "rgba(37, 99, 235, 0.1)",
+              tension: 0.4,
+            },
+            {
+              label: "Requests/min",
+              data: [],
+              borderColor: "#10b981",
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              tension: 0.4,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          scales: {
+            y: {
+              beginAtZero: true,
+            },
+          },
+        },
+      });
 
-    // Auto-load dashboard on page load
-    window.addEventListener('load', () => {
-      // Trigger initial load
-      window.wsx.send('load-dashboard', '#dashboard-content');
-    });
-  </script>
-</body>
+      // Auto-load dashboard on page load
+      window.addEventListener("load", () => {
+        // Trigger initial load
+        window.wsx.send("load-dashboard", "#dashboard-content");
+      });
+    </script>
+  </body>
 </html>
 ```
 
 ### Server Implementation
+
 ```javascript
-import { createExpressWSXServer } from "@wsx/express";
+import { createExpressWSXServer } from "@wsx-sh/express";
 import express from "express";
 
 const wsx = createExpressWSXServer();
@@ -231,48 +241,52 @@ const app = wsx.getApp();
 let dashboardData = {
   stats: {
     activeUsers: 1247,
-    totalRevenue: 45320.50,
+    totalRevenue: 45320.5,
     conversionRate: 3.2,
-    serverLoad: 68
+    serverLoad: 68,
   },
   metrics: {
     labels: [],
     activeUsers: [],
-    requestsPerMinute: []
+    requestsPerMinute: [],
   },
-  activities: []
+  activities: [],
 };
 
 // Generate initial mock data
 function generateMockData() {
   const now = new Date();
-  
+
   // Generate last 20 data points
   for (let i = 19; i >= 0; i--) {
     const time = new Date(now - i * 60000); // Each point is 1 minute apart
     dashboardData.metrics.labels.push(time.toLocaleTimeString());
-    dashboardData.metrics.activeUsers.push(Math.floor(Math.random() * 500) + 800);
-    dashboardData.metrics.requestsPerMinute.push(Math.floor(Math.random() * 200) + 100);
+    dashboardData.metrics.activeUsers.push(
+      Math.floor(Math.random() * 500) + 800
+    );
+    dashboardData.metrics.requestsPerMinute.push(
+      Math.floor(Math.random() * 200) + 100
+    );
   }
-  
+
   // Generate recent activities
   const activities = [
-    'User registered',
-    'Order completed',
-    'Payment processed',
-    'User logged in',
-    'Product viewed',
-    'Cart abandoned',
-    'Support ticket created',
-    'Review submitted'
+    "User registered",
+    "Order completed",
+    "Payment processed",
+    "User logged in",
+    "Product viewed",
+    "Cart abandoned",
+    "Support ticket created",
+    "Review submitted",
   ];
-  
+
   for (let i = 0; i < 10; i++) {
     dashboardData.activities.push({
       id: i,
       message: activities[Math.floor(Math.random() * activities.length)],
       time: new Date(now - Math.random() * 3600000).toLocaleTimeString(),
-      type: Math.random() > 0.5 ? 'positive' : 'neutral'
+      type: Math.random() > 0.5 ? "positive" : "neutral",
     });
   }
 }
@@ -303,26 +317,32 @@ wsx.on("load-dashboard", async (request, connection) => {
       <div class="stat-change neutral">No change</div>
     </div>
   `;
-  
-  const activitiesHtml = dashboardData.activities.map(activity => `
+
+  const activitiesHtml = dashboardData.activities
+    .map(
+      (activity) => `
     <div class="activity-item">
-      <div class="status-indicator ${activity.type === 'positive' ? 'status-online' : 'status-offline'}"></div>
+      <div class="status-indicator ${
+        activity.type === "positive" ? "status-online" : "status-offline"
+      }"></div>
       <div>${activity.message}</div>
       <div class="activity-time">${activity.time}</div>
     </div>
-  `).join('');
-  
+  `
+    )
+    .join("");
+
   return [
     {
       id: request.id,
       target: "#stats-grid",
-      html: statsHtml
+      html: statsHtml,
     },
     {
       id: request.id,
       target: "#activity-feed",
-      html: activitiesHtml
-    }
+      html: activitiesHtml,
+    },
   ];
 });
 
@@ -333,45 +353,59 @@ wsx.on("refresh-dashboard", async (request, connection) => {
   dashboardData.stats.totalRevenue += Math.random() * 1000 - 500;
   dashboardData.stats.conversionRate += (Math.random() - 0.5) * 0.1;
   dashboardData.stats.serverLoad += Math.floor(Math.random() * 10) - 5;
-  
+
   // Ensure realistic bounds
-  dashboardData.stats.activeUsers = Math.max(800, Math.min(2000, dashboardData.stats.activeUsers));
-  dashboardData.stats.totalRevenue = Math.max(0, dashboardData.stats.totalRevenue);
-  dashboardData.stats.conversionRate = Math.max(0, Math.min(10, dashboardData.stats.conversionRate));
-  dashboardData.stats.serverLoad = Math.max(0, Math.min(100, dashboardData.stats.serverLoad));
-  
+  dashboardData.stats.activeUsers = Math.max(
+    800,
+    Math.min(2000, dashboardData.stats.activeUsers)
+  );
+  dashboardData.stats.totalRevenue = Math.max(
+    0,
+    dashboardData.stats.totalRevenue
+  );
+  dashboardData.stats.conversionRate = Math.max(
+    0,
+    Math.min(10, dashboardData.stats.conversionRate)
+  );
+  dashboardData.stats.serverLoad = Math.max(
+    0,
+    Math.min(100, dashboardData.stats.serverLoad)
+  );
+
   // Add new metric data point
   const now = new Date();
   dashboardData.metrics.labels.push(now.toLocaleTimeString());
   dashboardData.metrics.activeUsers.push(dashboardData.stats.activeUsers);
-  dashboardData.metrics.requestsPerMinute.push(Math.floor(Math.random() * 200) + 100);
-  
+  dashboardData.metrics.requestsPerMinute.push(
+    Math.floor(Math.random() * 200) + 100
+  );
+
   // Keep only last 20 data points
   if (dashboardData.metrics.labels.length > 20) {
     dashboardData.metrics.labels.shift();
     dashboardData.metrics.activeUsers.shift();
     dashboardData.metrics.requestsPerMinute.shift();
   }
-  
+
   // Generate new activity
   const activities = [
-    'User registered',
-    'Order completed',
-    'Payment processed',
-    'User logged in',
-    'Product viewed'
+    "User registered",
+    "Order completed",
+    "Payment processed",
+    "User logged in",
+    "Product viewed",
   ];
-  
+
   dashboardData.activities.unshift({
     id: Date.now(),
     message: activities[Math.floor(Math.random() * activities.length)],
     time: now.toLocaleTimeString(),
-    type: Math.random() > 0.5 ? 'positive' : 'neutral'
+    type: Math.random() > 0.5 ? "positive" : "neutral",
   });
-  
+
   // Keep only last 10 activities
   dashboardData.activities = dashboardData.activities.slice(0, 10);
-  
+
   // Return updated data
   const statsHtml = `
     <div class="stat-card">
@@ -386,7 +420,9 @@ wsx.on("refresh-dashboard", async (request, connection) => {
     </div>
     <div class="stat-card">
       <div class="stat-label">Conversion Rate</div>
-      <div class="stat-value">${dashboardData.stats.conversionRate.toFixed(1)}%</div>
+      <div class="stat-value">${dashboardData.stats.conversionRate.toFixed(
+        1
+      )}%</div>
       <div class="stat-change negative">-0.5% from yesterday</div>
     </div>
     <div class="stat-card">
@@ -395,65 +431,75 @@ wsx.on("refresh-dashboard", async (request, connection) => {
       <div class="stat-change neutral">No change</div>
     </div>
   `;
-  
-  const activitiesHtml = dashboardData.activities.map(activity => `
+
+  const activitiesHtml = dashboardData.activities
+    .map(
+      (activity) => `
     <div class="activity-item">
-      <div class="status-indicator ${activity.type === 'positive' ? 'status-online' : 'status-offline'}"></div>
+      <div class="status-indicator ${
+        activity.type === "positive" ? "status-online" : "status-offline"
+      }"></div>
       <div>${activity.message}</div>
       <div class="activity-time">${activity.time}</div>
     </div>
-  `).join('');
-  
+  `
+    )
+    .join("");
+
   return [
     {
       id: request.id,
       target: "#stats-grid",
-      html: statsHtml
+      html: statsHtml,
     },
     {
       id: request.id,
       target: "#activity-feed",
-      html: activitiesHtml
-    }
+      html: activitiesHtml,
+    },
   ];
 });
 
 // Auto-update dashboard every 30 seconds
 setInterval(() => {
   const connections = wsx.getConnections();
-  
-  connections.forEach(connection => {
+
+  connections.forEach((connection) => {
     // Update metrics data
     const now = new Date();
     dashboardData.metrics.labels.push(now.toLocaleTimeString());
-    dashboardData.metrics.activeUsers.push(Math.floor(Math.random() * 500) + 800);
-    dashboardData.metrics.requestsPerMinute.push(Math.floor(Math.random() * 200) + 100);
-    
+    dashboardData.metrics.activeUsers.push(
+      Math.floor(Math.random() * 500) + 800
+    );
+    dashboardData.metrics.requestsPerMinute.push(
+      Math.floor(Math.random() * 200) + 100
+    );
+
     // Keep only last 20 data points
     if (dashboardData.metrics.labels.length > 20) {
       dashboardData.metrics.labels.shift();
       dashboardData.metrics.activeUsers.shift();
       dashboardData.metrics.requestsPerMinute.shift();
     }
-    
+
     // Send chart update
     const chartUpdate = {
-      type: 'chart-update',
+      type: "chart-update",
       data: {
         labels: dashboardData.metrics.labels,
         datasets: [
           {
-            label: 'Active Users',
-            data: dashboardData.metrics.activeUsers
+            label: "Active Users",
+            data: dashboardData.metrics.activeUsers,
           },
           {
-            label: 'Requests/min',
-            data: dashboardData.metrics.requestsPerMinute
-          }
-        ]
-      }
+            label: "Requests/min",
+            data: dashboardData.metrics.requestsPerMinute,
+          },
+        ],
+      },
     };
-    
+
     connection.send(JSON.stringify(chartUpdate));
   });
 }, 30000);
@@ -467,48 +513,49 @@ wsx.on("get-metric-data", async (request, connection) => {
       labels: dashboardData.metrics.labels,
       datasets: [
         {
-          label: 'Active Users',
+          label: "Active Users",
           data: dashboardData.metrics.activeUsers,
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.1)'
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37, 99, 235, 0.1)",
         },
         {
-          label: 'Requests/min',
+          label: "Requests/min",
           data: dashboardData.metrics.requestsPerMinute,
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)'
-        }
-      ]
-    })
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+        },
+      ],
+    }),
   };
 });
 
-app.use(express.static('public'));
+app.use(express.static("public"));
 app.listen(3000, () => {
-  console.log('Dashboard server running on http://localhost:3000');
+  console.log("Dashboard server running on http://localhost:3000");
 });
 ```
 
 ## Advanced Dashboard Features
 
 ### User-Specific Dashboards
+
 ```javascript
 // User dashboard customization
 wsx.on("load-user-dashboard", async (request, connection) => {
   const user = connection.sessionData?.user;
-  
+
   if (!user) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Please log in to view your dashboard</div>`
+      html: `<div class="error">Please log in to view your dashboard</div>`,
     };
   }
-  
+
   // Get user-specific data
   const userStats = await getUserStats(user.id);
   const userActivities = await getUserActivities(user.id);
-  
+
   const dashboardHtml = `
     <div class="user-dashboard">
       <h2>Welcome back, ${user.name}!</h2>
@@ -530,82 +577,97 @@ wsx.on("load-user-dashboard", async (request, connection) => {
       
       <div class="recent-activity">
         <h3>Your Recent Activity</h3>
-        ${userActivities.map(activity => `
+        ${userActivities
+          .map(
+            (activity) => `
           <div class="activity-item">
             <div>${activity.description}</div>
             <div class="activity-time">${activity.timestamp}</div>
           </div>
-        `).join('')}
+        `
+          )
+          .join("")}
       </div>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: dashboardHtml
+    html: dashboardHtml,
   };
 });
 ```
 
 ### Real-Time Alerts
+
 ```javascript
 // Alert system
 const alertThresholds = {
   serverLoad: 80,
   errorRate: 5,
-  responseTime: 1000
+  responseTime: 1000,
 };
 
 function checkAlerts() {
   const alerts = [];
-  
+
   if (dashboardData.stats.serverLoad > alertThresholds.serverLoad) {
     alerts.push({
-      type: 'warning',
+      type: "warning",
       message: `Server load is high: ${dashboardData.stats.serverLoad}%`,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
-  
+
   return alerts;
 }
 
 wsx.on("get-alerts", async (request, connection) => {
   const alerts = checkAlerts();
-  
-  const alertsHtml = alerts.map(alert => `
+
+  const alertsHtml = alerts
+    .map(
+      (alert) => `
     <div class="alert alert-${alert.type}">
       <strong>${alert.type.toUpperCase()}</strong>
       <span>${alert.message}</span>
       <small>${alert.timestamp.toLocaleTimeString()}</small>
     </div>
-  `).join('');
-  
+  `
+    )
+    .join("");
+
   return {
     id: request.id,
     target: request.target,
-    html: alertsHtml || '<div class="no-alerts">No active alerts</div>'
+    html: alertsHtml || '<div class="no-alerts">No active alerts</div>',
   };
 });
 
 // Send alerts to admins
 setInterval(() => {
   const alerts = checkAlerts();
-  
+
   if (alerts.length > 0) {
-    const adminConnections = wsx.getConnections()
-      .filter(conn => conn.sessionData?.user?.role === 'admin');
-    
-    adminConnections.forEach(conn => {
-      alerts.forEach(alert => {
+    const adminConnections = wsx
+      .getConnections()
+      .filter((conn) => conn.sessionData?.user?.role === "admin");
+
+    adminConnections.forEach((conn) => {
+      alerts.forEach((alert) => {
         const alertHtml = `
           <div class="alert alert-${alert.type}">
             ${alert.message}
           </div>
         `;
-        
-        wsx.sendToConnection(conn.id, "#alerts-container", alertHtml, "afterbegin");
+
+        wsx.sendToConnection(
+          conn.id,
+          "#alerts-container",
+          alertHtml,
+          "afterbegin"
+        );
       });
     });
   }
@@ -613,15 +675,16 @@ setInterval(() => {
 ```
 
 ### Interactive Widgets
+
 ```javascript
 // Interactive widget system
 wsx.on("add-widget", async (request, connection) => {
   const { widgetType, position } = request.data;
-  
-  let widgetHtml = '';
-  
+
+  let widgetHtml = "";
+
   switch (widgetType) {
-    case 'sales-chart':
+    case "sales-chart":
       widgetHtml = `
         <div class="widget sales-chart-widget" data-widget-id="${Date.now()}">
           <div class="widget-header">
@@ -634,8 +697,8 @@ wsx.on("add-widget", async (request, connection) => {
         </div>
       `;
       break;
-      
-    case 'top-products':
+
+    case "top-products":
       widgetHtml = `
         <div class="widget top-products-widget" data-widget-id="${Date.now()}">
           <div class="widget-header">
@@ -650,8 +713,8 @@ wsx.on("add-widget", async (request, connection) => {
         </div>
       `;
       break;
-      
-    case 'user-analytics':
+
+    case "user-analytics":
       widgetHtml = `
         <div class="widget user-analytics-widget" data-widget-id="${Date.now()}">
           <div class="widget-header">
@@ -674,23 +737,23 @@ wsx.on("add-widget", async (request, connection) => {
       `;
       break;
   }
-  
+
   return {
     id: request.id,
     target: `#dashboard-grid`,
     html: widgetHtml,
-    swap: "beforeend"
+    swap: "beforeend",
   };
 });
 
 wsx.on("remove-widget", async (request, connection) => {
   const widgetId = request.data.widgetId;
-  
+
   return {
     id: request.id,
     target: `[data-widget-id="${widgetId}"]`,
     html: "",
-    swap: "outerHTML"
+    swap: "outerHTML",
   };
 });
 ```
@@ -698,41 +761,42 @@ wsx.on("remove-widget", async (request, connection) => {
 ## Performance Monitoring Dashboard
 
 ### System Metrics
+
 ```javascript
 // System performance monitoring
 const systemMetrics = {
   cpu: [],
   memory: [],
   network: [],
-  disk: []
+  disk: [],
 };
 
 function collectSystemMetrics() {
   // Simulate collecting real system metrics
   const now = Date.now();
-  
+
   systemMetrics.cpu.push({
     timestamp: now,
-    value: Math.random() * 100
+    value: Math.random() * 100,
   });
-  
+
   systemMetrics.memory.push({
     timestamp: now,
-    value: Math.random() * 100
+    value: Math.random() * 100,
   });
-  
+
   systemMetrics.network.push({
     timestamp: now,
-    value: Math.random() * 1000
+    value: Math.random() * 1000,
   });
-  
+
   systemMetrics.disk.push({
     timestamp: now,
-    value: Math.random() * 100
+    value: Math.random() * 100,
   });
-  
+
   // Keep only last 100 data points
-  Object.keys(systemMetrics).forEach(key => {
+  Object.keys(systemMetrics).forEach((key) => {
     if (systemMetrics[key].length > 100) {
       systemMetrics[key].shift();
     }
@@ -744,22 +808,23 @@ setInterval(collectSystemMetrics, 5000);
 
 wsx.on("get-system-metrics", async (request, connection) => {
   const user = connection.sessionData?.user;
-  
+
   if (!user?.isAdmin) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Admin access required</div>`
+      html: `<div class="error">Admin access required</div>`,
     };
   }
-  
+
   const latest = {
     cpu: systemMetrics.cpu[systemMetrics.cpu.length - 1]?.value || 0,
     memory: systemMetrics.memory[systemMetrics.memory.length - 1]?.value || 0,
-    network: systemMetrics.network[systemMetrics.network.length - 1]?.value || 0,
-    disk: systemMetrics.disk[systemMetrics.disk.length - 1]?.value || 0
+    network:
+      systemMetrics.network[systemMetrics.network.length - 1]?.value || 0,
+    disk: systemMetrics.disk[systemMetrics.disk.length - 1]?.value || 0,
   };
-  
+
   const metricsHtml = `
     <div class="system-metrics">
       <div class="metric-card">
@@ -782,7 +847,10 @@ wsx.on("get-system-metrics", async (request, connection) => {
         <div class="metric-label">Network I/O</div>
         <div class="metric-value">${latest.network.toFixed(0)} KB/s</div>
         <div class="metric-bar">
-          <div class="metric-fill" style="width: ${Math.min(latest.network / 10, 100)}%"></div>
+          <div class="metric-fill" style="width: ${Math.min(
+            latest.network / 10,
+            100
+          )}%"></div>
         </div>
       </div>
       
@@ -795,11 +863,11 @@ wsx.on("get-system-metrics", async (request, connection) => {
       </div>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: metricsHtml
+    html: metricsHtml,
   };
 });
 ```

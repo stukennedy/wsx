@@ -1,6 +1,6 @@
 ---
 title: Server API Reference
-description: 'Complete reference for WSX server-side APIs'
+description: "Complete reference for WSX server-side APIs"
 ---
 
 ## WSXServer
@@ -16,12 +16,14 @@ new WSXServer(adapter: WSXServerAdapter)
 Creates a new WSX server instance with the provided adapter.
 
 **Parameters:**
+
 - `adapter` - A WSXServerAdapter implementation (Express, Hono, or custom)
 
 **Example:**
+
 ```javascript
-import { WSXServer } from '@wsx/core';
-import { createExpressAdapter } from '@wsx/express';
+import { WSXServer } from "@wsx-sh/core";
+import { createExpressAdapter } from "@wsx-sh/express";
 
 const adapter = createExpressAdapter();
 const wsx = new WSXServer(adapter);
@@ -39,19 +41,21 @@ on(handlerFunction: WSXHandler): WSXServer
 ```
 
 **Parameters:**
+
 - `handler` (optional) - Handler name to match against `wx-send` attribute
 - `handlerFunction` - Function to handle the request
 
 **Returns:** WSXServer instance for chaining
 
 **Examples:**
+
 ```javascript
 // Named handler
-wsx.on('update-user', async (request, connection) => {
+wsx.on("update-user", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>User updated</div>`
+    html: `<div>User updated</div>`,
   };
 });
 
@@ -61,7 +65,7 @@ wsx.on(async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Handled: ${request.handler}</div>`
+    html: `<div>Handled: ${request.handler}</div>`,
   };
 });
 ```
@@ -75,13 +79,15 @@ broadcast(target: string, html: string, swap?: string): void
 ```
 
 **Parameters:**
+
 - `target` - CSS selector for the target element
 - `html` - HTML content to insert
 - `swap` (optional) - Swap method (default: 'innerHTML')
 
 **Example:**
+
 ```javascript
-wsx.broadcast('#status', '<div>Server updated</div>', 'innerHTML');
+wsx.broadcast("#status", "<div>Server updated</div>", "innerHTML");
 ```
 
 #### sendToConnection()
@@ -93,14 +99,20 @@ sendToConnection(connectionId: string, target: string, html: string, swap?: stri
 ```
 
 **Parameters:**
+
 - `connectionId` - ID of the target connection
 - `target` - CSS selector for the target element
 - `html` - HTML content to insert
 - `swap` (optional) - Swap method (default: 'innerHTML')
 
 **Example:**
+
 ```javascript
-wsx.sendToConnection('conn_123', '#notification', '<div>Personal message</div>');
+wsx.sendToConnection(
+  "conn_123",
+  "#notification",
+  "<div>Personal message</div>"
+);
 ```
 
 #### getConnections()
@@ -114,6 +126,7 @@ getConnections(): WSXConnection[]
 **Returns:** Array of active WSXConnection objects
 
 **Example:**
+
 ```javascript
 const connections = wsx.getConnections();
 console.log(`Active connections: ${connections.length}`);
@@ -130,6 +143,7 @@ getConnectionCount(): number
 **Returns:** Number of active connections
 
 **Example:**
+
 ```javascript
 const count = wsx.getConnectionCount();
 console.log(`${count} clients connected`);
@@ -144,11 +158,13 @@ removeConnection(connectionId: string): void
 ```
 
 **Parameters:**
+
 - `connectionId` - ID of the connection to remove
 
 **Example:**
+
 ```javascript
-wsx.removeConnection('conn_123');
+wsx.removeConnection("conn_123");
 ```
 
 #### getApp()
@@ -162,9 +178,10 @@ getApp(): any
 **Returns:** The framework-specific app instance (Express app, Hono app, etc.)
 
 **Example:**
+
 ```javascript
 const app = wsx.getApp();
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 ```
 
 ## WSXRequest
@@ -173,16 +190,17 @@ Interface representing an incoming WebSocket request.
 
 ```typescript
 interface WSXRequest {
-  id: string;              // Unique request ID
-  handler: string;         // Handler name from wx-send
-  target: string;          // CSS selector from wx-target
-  trigger: string;         // Event trigger name
+  id: string; // Unique request ID
+  handler: string; // Handler name from wx-send
+  target: string; // CSS selector from wx-target
+  trigger: string; // Event trigger name
   data?: Record<string, any>; // Form data or wx-data
-  swap?: string;           // Swap specification
+  swap?: string; // Swap specification
 }
 ```
 
 **Properties:**
+
 - `id` - Unique identifier for the request
 - `handler` - Handler name specified in `wx-send` attribute
 - `target` - CSS selector from `wx-target` attribute
@@ -196,15 +214,16 @@ Interface representing a response to send back to the client.
 
 ```typescript
 interface WSXResponse {
-  id: string;              // Request ID to match
-  target: string;          // CSS selector for target element
-  html: string;            // HTML content to insert
-  swap?: string;           // Swap method
-  oob?: WSXOOBUpdate[];    // Out-of-band updates
+  id: string; // Request ID to match
+  target: string; // CSS selector for target element
+  html: string; // HTML content to insert
+  swap?: string; // Swap method
+  oob?: WSXOOBUpdate[]; // Out-of-band updates
 }
 ```
 
 **Properties:**
+
 - `id` - Must match the request ID
 - `target` - CSS selector for the element to update
 - `html` - HTML content to insert
@@ -217,13 +236,14 @@ Interface for out-of-band updates.
 
 ```typescript
 interface WSXOOBUpdate {
-  target: string;          // CSS selector
-  html: string;            // HTML content
-  swap?: string;           // Swap method
+  target: string; // CSS selector
+  html: string; // HTML content
+  swap?: string; // Swap method
 }
 ```
 
 **Properties:**
+
 - `target` - CSS selector for the element to update
 - `html` - HTML content to insert
 - `swap` - How to insert the content
@@ -234,14 +254,15 @@ Interface representing a WebSocket connection.
 
 ```typescript
 interface WSXConnection {
-  id: string;              // Unique connection ID
+  id: string; // Unique connection ID
   sessionData?: Record<string, any>; // Session data
-  send(data: string): void;     // Send data to client
-  close(): void;                // Close connection
+  send(data: string): void; // Send data to client
+  close(): void; // Close connection
 }
 ```
 
 **Properties:**
+
 - `id` - Unique identifier for the connection
 - `sessionData` - Object for storing session-specific data
 - `send()` - Method to send data to the client
@@ -259,10 +280,12 @@ type WSXHandler = (
 ```
 
 **Parameters:**
+
 - `request` - The incoming request
 - `connection` - The connection that sent the request
 
 **Returns:** Promise that resolves to:
+
 - `WSXResponse` - Single response
 - `WSXResponse[]` - Array of responses
 - `void` - No response (useful for side effects only)
@@ -273,7 +296,10 @@ Interface that framework adapters must implement.
 
 ```typescript
 interface WSXServerAdapter {
-  setupWebSocket(path: string, onMessage: (data: string, connection: WSXConnection) => void): void;
+  setupWebSocket(
+    path: string,
+    onMessage: (data: string, connection: WSXConnection) => void
+  ): void;
   onConnection?(connection: WSXConnection): void;
   onDisconnection?(connection: WSXConnection): void;
   getApp(): any;
@@ -281,6 +307,7 @@ interface WSXServerAdapter {
 ```
 
 **Methods:**
+
 - `setupWebSocket()` - Set up WebSocket handling
 - `onConnection()` - Optional connection handler
 - `onDisconnection()` - Optional disconnection handler
@@ -291,20 +318,20 @@ interface WSXServerAdapter {
 WSX provides built-in error handling, but you can customize it:
 
 ```javascript
-wsx.on('error-prone-handler', async (request, connection) => {
+wsx.on("error-prone-handler", async (request, connection) => {
   try {
     // Your logic here
     return {
       id: request.id,
       target: request.target,
-      html: '<div>Success</div>'
+      html: "<div>Success</div>",
     };
   } catch (error) {
-    console.error('Handler error:', error);
+    console.error("Handler error:", error);
     return {
       id: request.id,
       target: request.target,
-      html: '<div class="error">Something went wrong</div>'
+      html: '<div class="error">Something went wrong</div>',
     };
   }
 });
@@ -320,10 +347,10 @@ const userHandlers = {
   async updateUser(request, connection) {
     // Update user logic
   },
-  
+
   async deleteUser(request, connection) {
     // Delete user logic
-  }
+  },
 };
 
 // Register handlers
@@ -338,15 +365,15 @@ Object.entries(userHandlers).forEach(([name, handler]) => {
 // Track user sessions
 const userSessions = new Map();
 
-wsx.on('login', async (request, connection) => {
+wsx.on("login", async (request, connection) => {
   const userId = request.data.userId;
   userSessions.set(connection.id, userId);
   connection.sessionData = { userId };
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: '<div>Logged in successfully</div>'
+    html: "<div>Logged in successfully</div>",
   };
 });
 ```
@@ -358,8 +385,8 @@ wsx.on('login', async (request, connection) => {
 function broadcastToUser(userId, target, html) {
   const connections = wsx.getConnections();
   connections
-    .filter(conn => conn.sessionData?.userId === userId)
-    .forEach(conn => {
+    .filter((conn) => conn.sessionData?.userId === userId)
+    .forEach((conn) => {
       wsx.sendToConnection(conn.id, target, html);
     });
 }
@@ -368,8 +395,8 @@ function broadcastToUser(userId, target, html) {
 function broadcastExcept(senderId, target, html) {
   const connections = wsx.getConnections();
   connections
-    .filter(conn => conn.id !== senderId)
-    .forEach(conn => {
+    .filter((conn) => conn.id !== senderId)
+    .forEach((conn) => {
       wsx.sendToConnection(conn.id, target, html);
     });
 }
@@ -378,32 +405,16 @@ function broadcastExcept(senderId, target, html) {
 ## Next Steps
 
 <CardGroup cols={2}>
-  <Card
-    title="Client API"
-    icon="browser"
-    href="/api-reference/client"
-  >
+  <Card title="Client API" icon="browser" href="/api-reference/client">
     Learn about the client-side API
   </Card>
-  <Card
-    title="Type Definitions"
-    icon="code"
-    href="/api-reference/types"
-  >
+  <Card title="Type Definitions" icon="code" href="/api-reference/types">
     Complete TypeScript type definitions
   </Card>
-  <Card
-    title="Examples"
-    icon="lightbulb"
-    href="/examples/chat"
-  >
+  <Card title="Examples" icon="lightbulb" href="/examples/chat">
     See real-world usage examples
   </Card>
-  <Card
-    title="Advanced Usage"
-    icon="cog"
-    href="/advanced/performance"
-  >
+  <Card title="Advanced Usage" icon="cog" href="/advanced/performance">
     Advanced patterns and optimization
   </Card>
 </CardGroup>

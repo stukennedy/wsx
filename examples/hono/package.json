@@ -6,8 +6,8 @@
     "deploy": "bun run wrangler deploy --minify"
   },
   "dependencies": {
-    "@wsx/hono": "workspace:*",
-    "@wsx/core": "workspace:*",
+    "@wsx-sh/hono": "workspace:*",
+    "@wsx-sh/core": "workspace:*",
     "hono": "^4.8.4"
   },
   "devDependencies": {

@@ -1,8 +1,10 @@
 import { Context } from "hono";
 
 export const landingPage = (c: Context) => {
+  const url = new URL(c.req.url);
+  const wsUrl = url.origin + "/landing-ws";
   return c.render(
-    <div wx-config='{"url": "ws://localhost:8787/landing-ws", "debug": true}'>
+    <div wx-config={`{"url": "${wsUrl}", "debug": true}`}>
       <div id="live-stats" class="live-indicator">
         <span class="live-dot"></span>
         Demo Mode
@@ -196,7 +198,7 @@ export const landingPage = (c: Context) => {
             <a href="https://github.com/stukennedy/wsx" target="_blank">
               GitHub
             </a>
-            <a href="https://npm.im/@wsx/core" target="_blank">
+            <a href="https://npm.im/@wsx-sh/core" target="_blank">
               NPM
             </a>
             <a href="#demo">Demo</a>

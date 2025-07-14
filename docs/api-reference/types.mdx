@@ -15,14 +15,14 @@ Represents a request from the client to the server.
 
 ```typescript
 interface WSXRequest {
-  id: string;                    // Unique request identifier
-  handler: string;               // Handler name to invoke
-  target: string;                // CSS selector for target element
-  trigger?: string;              // Trigger event information
-  data?: Record<string, any>;    // Request data payload
-  swap?: string;                 // Content swap specification
+  id: string; // Unique request identifier
+  handler: string; // Handler name to invoke
+  target: string; // CSS selector for target element
+  trigger?: string; // Trigger event information
+  data?: Record<string, any>; // Request data payload
+  swap?: string; // Content swap specification
   headers?: Record<string, string>; // Request headers
-  timestamp?: number;            // Request timestamp
+  timestamp?: number; // Request timestamp
 }
 ```
 
@@ -30,11 +30,11 @@ interface WSXRequest {
 
 ```typescript
 const request: WSXRequest = {
-  id: 'req-123',
-  handler: 'get-user',
-  target: '#user-info',
+  id: "req-123",
+  handler: "get-user",
+  target: "#user-info",
   data: { userId: 123 },
-  swap: 'innerHTML'
+  swap: "innerHTML",
 };
 ```
 
@@ -44,14 +44,14 @@ Represents a response from the server to the client.
 
 ```typescript
 interface WSXResponse {
-  id: string;                    // Request ID this response belongs to
-  target: string;                // CSS selector for target element
-  html: string;                  // HTML content to swap
-  swap?: string;                 // How to swap the content
-  oob?: WSXOOBUpdate[];         // Out-of-band updates
+  id: string; // Request ID this response belongs to
+  target: string; // CSS selector for target element
+  html: string; // HTML content to swap
+  swap?: string; // How to swap the content
+  oob?: WSXOOBUpdate[]; // Out-of-band updates
   headers?: Record<string, string>; // Response headers
-  error?: string;                // Error message if request failed
-  timestamp?: number;            // Response timestamp
+  error?: string; // Error message if request failed
+  timestamp?: number; // Response timestamp
 }
 ```
 
@@ -59,17 +59,17 @@ interface WSXResponse {
 
 ```typescript
 const response: WSXResponse = {
-  id: 'req-123',
-  target: '#user-info',
-  html: '<div>John Doe</div>',
-  swap: 'innerHTML',
+  id: "req-123",
+  target: "#user-info",
+  html: "<div>John Doe</div>",
+  swap: "innerHTML",
   oob: [
     {
-      target: '#notification',
-      html: '<div>User loaded</div>',
-      swap: 'beforeend'
-    }
-  ]
+      target: "#notification",
+      html: "<div>User loaded</div>",
+      swap: "beforeend",
+    },
+  ],
 };
 ```
 
@@ -79,10 +79,10 @@ Represents an out-of-band update for multiple element updates.
 
 ```typescript
 interface WSXOOBUpdate {
-  target: string;                // CSS selector for target element
-  html: string;                  // HTML content to swap
-  swap?: string;                 // How to swap the content
-  delay?: number;                // Delay before applying update (ms)
+  target: string; // CSS selector for target element
+  html: string; // HTML content to swap
+  swap?: string; // How to swap the content
+  delay?: number; // Delay before applying update (ms)
 }
 ```
 
@@ -90,10 +90,10 @@ interface WSXOOBUpdate {
 
 ```typescript
 const oobUpdate: WSXOOBUpdate = {
-  target: '#sidebar',
-  html: '<div>Updated sidebar</div>',
-  swap: 'innerHTML',
-  delay: 1000
+  target: "#sidebar",
+  html: "<div>Updated sidebar</div>",
+  swap: "innerHTML",
+  delay: 1000,
 };
 ```
 
@@ -103,34 +103,37 @@ Represents a WebSocket connection on the server side.
 
 ```typescript
 interface WSXConnection {
-  id: string;                    // Unique connection identifier
+  id: string; // Unique connection identifier
   sessionData?: Record<string, any>; // Session storage
-  send(data: string): void;      // Send data to client
-  close(): void;                 // Close connection
-  
+  send(data: string): void; // Send data to client
+  close(): void; // Close connection
+
   // Optional properties
-  request?: any;                 // Original HTTP request
-  ip?: string;                   // Client IP address
+  request?: any; // Original HTTP request
+  ip?: string; // Client IP address
   headers?: Record<string, string>; // Connection headers
-  authenticated?: boolean;       // Authentication status
-  lastActivity?: number;         // Last activity timestamp
+  authenticated?: boolean; // Authentication status
+  lastActivity?: number; // Last activity timestamp
 }
 ```
 
 #### Example
 
 ```typescript
-function handleRequest(request: WSXRequest, connection: WSXConnection): WSXResponse {
+function handleRequest(
+  request: WSXRequest,
+  connection: WSXConnection
+): WSXResponse {
   // Store data in session
   connection.sessionData = {
     ...connection.sessionData,
-    lastRequest: request.handler
+    lastRequest: request.handler,
   };
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Hello from ${connection.id}</div>`
+    html: `<div>Hello from ${connection.id}</div>`,
   };
 }
 ```
@@ -151,16 +154,16 @@ type WSXHandler = (
 #### Example
 
 ```typescript
-import { html } from '@wsx/core';
+import { html } from "@wsx-sh/core";
 
 const getUserHandler: WSXHandler = async (request, connection) => {
   const { userId } = request.data;
   const user = await getUserById(userId);
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: html`<div>${user.name}</div>`
+    html: html`<div>${user.name}</div>`,
   };
 };
 ```
@@ -181,14 +184,14 @@ type WSXErrorHandler = (
 
 ```typescript
 const errorHandler: WSXErrorHandler = (error, request, connection) => {
-  console.error('Handler error:', error);
-  
+  console.error("Handler error:", error);
+
   if (request) {
     return {
       id: request.id,
       target: request.target,
       html: `<div class="error">An error occurred</div>`,
-      error: error.message
+      error: error.message,
     };
   }
 };
@@ -211,15 +214,15 @@ type WSXMiddleware = (
 ```typescript
 const authMiddleware: WSXMiddleware = async (request, connection, next) => {
   const user = connection.sessionData?.user;
-  
+
   if (!user) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Authentication required</div>`
+      html: `<div class="error">Authentication required</div>`,
     };
   }
-  
+
   return await next();
 };
 ```
@@ -232,15 +235,15 @@ Configuration options for the WSX client.
 
 ```typescript
 interface WSXClientOptions {
-  url: string;                   // WebSocket server URL
-  autoConnect?: boolean;         // Auto-connect on instantiation
-  reconnect?: boolean;           // Auto-reconnect on connection loss
-  reconnectInterval?: number;    // Reconnection interval in ms
+  url: string; // WebSocket server URL
+  autoConnect?: boolean; // Auto-connect on instantiation
+  reconnect?: boolean; // Auto-reconnect on connection loss
+  reconnectInterval?: number; // Reconnection interval in ms
   maxReconnectAttempts?: number; // Maximum reconnection attempts
-  debug?: boolean;               // Enable debug logging
-  timeout?: number;              // Default request timeout
+  debug?: boolean; // Enable debug logging
+  timeout?: number; // Default request timeout
   headers?: Record<string, string>; // Default headers
-  protocols?: string[];          // WebSocket protocols
+  protocols?: string[]; // WebSocket protocols
 }
 ```
 
@@ -248,13 +251,13 @@ interface WSXClientOptions {
 
 ```typescript
 const options: WSXClientOptions = {
-  url: 'ws://localhost:3000/ws',
+  url: "ws://localhost:3000/ws",
   autoConnect: true,
   reconnect: true,
   reconnectInterval: 3000,
   maxReconnectAttempts: 10,
   debug: false,
-  timeout: 30000
+  timeout: 30000,
 };
 ```
 
@@ -264,12 +267,12 @@ Options for sending requests.
 
 ```typescript
 interface WSXSendOptions {
-  swap?: string;                 // Content swap type
-  timeout?: number;              // Request timeout
+  swap?: string; // Content swap type
+  timeout?: number; // Request timeout
   headers?: Record<string, string>; // Request headers
-  confirm?: string;              // Confirmation message
-  indicator?: string;            // Loading indicator selector
-  disable?: boolean;             // Disable element during request
+  confirm?: string; // Confirmation message
+  indicator?: string; // Loading indicator selector
+  disable?: boolean; // Disable element during request
 }
 ```
 
@@ -277,11 +280,11 @@ interface WSXSendOptions {
 
 ```typescript
 const sendOptions: WSXSendOptions = {
-  swap: 'beforeend',
+  swap: "beforeend",
   timeout: 10000,
-  confirm: 'Are you sure?',
-  indicator: '#loading',
-  disable: true
+  confirm: "Are you sure?",
+  indicator: "#loading",
+  disable: true,
 };
 ```
 
@@ -291,26 +294,26 @@ Type map for WSX client events.
 
 ```typescript
 interface WSXEventMap {
-  'connect': () => void;
-  'disconnect': () => void;
-  'message': (message: any) => void;
-  'error': (error: Error) => void;
-  'reconnect': () => void;
-  'reconnected': () => void;
-  'request': (request: WSXRequest) => void;
-  'response': (response: WSXResponse) => void;
+  connect: () => void;
+  disconnect: () => void;
+  message: (message: any) => void;
+  error: (error: Error) => void;
+  reconnect: () => void;
+  reconnected: () => void;
+  request: (request: WSXRequest) => void;
+  response: (response: WSXResponse) => void;
 }
 ```
 
 #### Example
 
 ```typescript
-wsx.on('connect', () => {
-  console.log('Connected');
+wsx.on("connect", () => {
+  console.log("Connected");
 });
 
-wsx.on('error', (error: Error) => {
-  console.error('Error:', error);
+wsx.on("error", (error: Error) => {
+  console.error("Error:", error);
 });
 ```
 
@@ -322,12 +325,12 @@ Configuration options for the WSX server.
 
 ```typescript
 interface WSXServerOptions {
-  path?: string;                 // WebSocket path
-  maxConnections?: number;       // Maximum concurrent connections
-  maxMessageSize?: number;       // Maximum message size in bytes
-  pingInterval?: number;         // Ping interval in ms
-  pongTimeout?: number;          // Pong timeout in ms
-  compression?: boolean;         // Enable compression
+  path?: string; // WebSocket path
+  maxConnections?: number; // Maximum concurrent connections
+  maxMessageSize?: number; // Maximum message size in bytes
+  pingInterval?: number; // Ping interval in ms
+  pongTimeout?: number; // Pong timeout in ms
+  compression?: boolean; // Enable compression
   cors?: {
     origin?: string | string[];
     credentials?: boolean;
@@ -341,16 +344,16 @@ interface WSXServerOptions {
 
 ```typescript
 const serverOptions: WSXServerOptions = {
-  path: '/ws',
+  path: "/ws",
   maxConnections: 1000,
   maxMessageSize: 1024 * 1024, // 1MB
   pingInterval: 30000,
   pongTimeout: 10000,
   compression: true,
   cors: {
-    origin: ['http://localhost:3000'],
-    credentials: true
-  }
+    origin: ["http://localhost:3000"],
+    credentials: true,
+  },
 };
 ```
 
@@ -375,11 +378,11 @@ class CustomAdapter implements WSXAdapter {
   setupWebSocket(path: string, onMessage: MessageHandler): void {
     // Implementation
   }
-  
+
   getApp(): any {
     return this.app;
   }
-  
+
   onConnection(connection: WSXConnection): void {
     console.log(`Connection ${connection.id} established`);
   }
@@ -401,13 +404,16 @@ type MessageHandler = (data: string, connection: WSXConnection) => void;
 Type for the HTML template helper function.
 
 ```typescript
-type WSXHtmlHelper = (strings: TemplateStringsArray, ...values: any[]) => string;
+type WSXHtmlHelper = (
+  strings: TemplateStringsArray,
+  ...values: any[]
+) => string;
 ```
 
 #### Example
 
 ```typescript
-import { html } from '@wsx/core';
+import { html } from "@wsx-sh/core";
 
 // The html helper provides better TypeScript support
 const template: string = html`
@@ -423,14 +429,14 @@ const template: string = html`
 Union type for content swap types.
 
 ```typescript
-type WSXSwapType = 
-  | 'innerHTML'
-  | 'outerHTML'
-  | 'beforebegin'
-  | 'afterbegin'
-  | 'beforeend'
-  | 'afterend'
-  | 'none';
+type WSXSwapType =
+  | "innerHTML"
+  | "outerHTML"
+  | "beforebegin"
+  | "afterbegin"
+  | "beforeend"
+  | "afterend"
+  | "none";
 ```
 
 #### Example
@@ -439,12 +445,12 @@ type WSXSwapType =
 function swapContent(target: string, html: string, swap: WSXSwapType): void {
   const element = document.querySelector(target);
   if (!element) return;
-  
+
   switch (swap) {
-    case 'innerHTML':
+    case "innerHTML":
       element.innerHTML = html;
       break;
-    case 'outerHTML':
+    case "outerHTML":
       element.outerHTML = html;
       break;
     // ... other cases
@@ -457,19 +463,19 @@ function swapContent(target: string, html: string, swap: WSXSwapType): void {
 Union type for trigger types.
 
 ```typescript
-type WSXTriggerType = 
-  | 'click'
-  | 'submit'
-  | 'change'
-  | 'input'
-  | 'keyup'
-  | 'keydown'
-  | 'focus'
-  | 'blur'
-  | 'load'
-  | 'scroll'
-  | 'resize'
-  | 'custom';
+type WSXTriggerType =
+  | "click"
+  | "submit"
+  | "change"
+  | "input"
+  | "keyup"
+  | "keydown"
+  | "focus"
+  | "blur"
+  | "load"
+  | "scroll"
+  | "resize"
+  | "custom";
 ```
 
 ### WSXRequestStatus
@@ -477,13 +483,13 @@ type WSXTriggerType =
 Union type for request statuses.
 
 ```typescript
-type WSXRequestStatus = 
-  | 'pending'
-  | 'sent'
-  | 'success'
-  | 'error'
-  | 'timeout'
-  | 'cancelled';
+type WSXRequestStatus =
+  | "pending"
+  | "sent"
+  | "success"
+  | "error"
+  | "timeout"
+  | "cancelled";
 ```
 
 ## Generic Types
@@ -506,10 +512,10 @@ interface UserData {
 }
 
 const request: WSXRequest = {
-  id: 'req-123',
-  handler: 'update-user',
-  target: '#user-info',
-  data: { id: 1, name: 'John', email: 'john@example.com' } as WSXData<UserData>
+  id: "req-123",
+  handler: "update-user",
+  target: "#user-info",
+  data: { id: 1, name: "John", email: "john@example.com" } as WSXData<UserData>,
 };
 ```
 
@@ -526,11 +532,11 @@ type WSXResult<T = any> = Promise<T> | T;
 ```typescript
 const handler = async (request: WSXRequest): WSXResult<WSXResponse> => {
   const user = await fetchUser(request.data.id);
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>${user.name}</div>`
+    html: `<div>${user.name}</div>`,
   };
 };
 ```
@@ -544,7 +550,7 @@ Type for validation rules.
 ```typescript
 interface WSXValidationRule {
   required?: boolean;
-  type?: 'string' | 'number' | 'email' | 'url' | 'date';
+  type?: "string" | "number" | "email" | "url" | "date";
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
@@ -558,14 +564,14 @@ interface WSXValidationRule {
 const validationRules: Record<string, WSXValidationRule> = {
   email: {
     required: true,
-    type: 'email',
-    maxLength: 255
+    type: "email",
+    maxLength: 255,
   },
   age: {
     required: true,
-    type: 'number',
-    custom: (value) => value >= 18 || 'Must be 18 or older'
-  }
+    type: "number",
+    custom: (value) => value >= 18 || "Must be 18 or older",
+  },
 };
 ```
 
@@ -603,10 +609,10 @@ interface WSXUser {
 ```typescript
 const user: WSXUser = {
   id: 123,
-  username: 'john_doe',
-  email: 'john@example.com',
-  roles: ['user', 'admin'],
-  permissions: ['read', 'write', 'delete']
+  username: "john_doe",
+  email: "john@example.com",
+  roles: ["user", "admin"],
+  permissions: ["read", "write", "delete"],
 };
 ```
 
@@ -683,7 +689,7 @@ export {
   WSXValidationResult,
   WSXUser,
   WSXAuthContext,
-  WSXConfig
+  WSXConfig,
 };
 ```
 
@@ -692,11 +698,16 @@ export {
 ### Client-Side Usage
 
 ```typescript
-import { WSXClient, WSXClientOptions, WSXRequest, WSXResponse } from '@wsx/client';
+import {
+  WSXClient,
+  WSXClientOptions,
+  WSXRequest,
+  WSXResponse,
+} from "@wsx-sh/client";
 
 const options: WSXClientOptions = {
-  url: 'ws://localhost:3000/ws',
-  debug: true
+  url: "ws://localhost:3000/ws",
+  debug: true,
 };
 
 const client = new WSXClient(options);
@@ -704,55 +715,65 @@ const client = new WSXClient(options);
 // Type-safe request
 const request: WSXRequest = {
   id: client.generateId(),
-  handler: 'get-user',
-  target: '#user-info',
-  data: { userId: 123 }
+  handler: "get-user",
+  target: "#user-info",
+  data: { userId: 123 },
 };
 
 // Send request with proper typing
-client.send(request.handler, request.target, request.data)
+client
+  .send(request.handler, request.target, request.data)
   .then((response: WSXResponse) => {
-    console.log('Response:', response);
+    console.log("Response:", response);
   })
   .catch((error: Error) => {
-    console.error('Error:', error);
+    console.error("Error:", error);
   });
 ```
 
 ### Server-Side Usage
 
 ```typescript
-import { WSXServer, WSXHandler, WSXRequest, WSXResponse, WSXConnection } from '@wsx/server';
-import { html } from '@wsx/core';
+import {
+  WSXServer,
+  WSXHandler,
+  WSXRequest,
+  WSXResponse,
+  WSXConnection,
+} from "@wsx-sh/server";
+import { html } from "@wsx-sh/core";
 
 const server = new WSXServer();
 
 // Type-safe handler
-const getUserHandler: WSXHandler = async (request: WSXRequest, connection: WSXConnection): Promise<WSXResponse> => {
+const getUserHandler: WSXHandler = async (
+  request: WSXRequest,
+  connection: WSXConnection
+): Promise<WSXResponse> => {
   const { userId } = request.data;
-  
+
   // Type-safe session access
   const sessionUser = connection.sessionData?.user as WSXUser;
-  
+
   if (!sessionUser) {
     return {
       id: request.id,
       target: request.target,
       html: html`<div class="error">Authentication required</div>`,
-      error: 'Not authenticated'
+      error: "Not authenticated",
     };
   }
-  
+
   const user = await getUserById(userId);
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: html`<div>Welcome, ${user.name}!</div>`
+    html: html`<div>Welcome, ${user.name}!</div>`,
   };
 };
 
-server.on('get-user', getUserHandler);
+server.on("get-user", getUserHandler);
 ```
 
 ## Best Practices

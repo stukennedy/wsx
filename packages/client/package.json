@@ -1,6 +1,6 @@
 {
-  "name": "@wsx/client",
-  "version": "1.0.0",
+  "name": "@stukennedy/wsx-client",
+  "version": "1.0.1",
   "description": "Client-side JavaScript library for WSX WebSocket connections",
   "main": "wsx.js",
   "files": [
@@ -22,7 +22,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/stukennedy/wsx.git",
+    "url": "git+https://github.com/stukennedy/wsx.git",
     "directory": "packages/client"
-  }
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/stukennedy/wsx/issues"
+  },
+  "homepage": "https://github.com/stukennedy/wsx#readme"
 }

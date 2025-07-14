@@ -10,410 +10,459 @@ This example demonstrates how to build a comprehensive real-time notification sy
 ## Basic Notification System
 
 ### HTML Structure
+
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>WSX Notifications System</title>
-  <script src="/wsx.js"></script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background-color: #f5f5f5;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 20px;
-    }
-    
-    .main-content {
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .notification-panel {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      height: fit-content;
-    }
-    
-    /* Toast Notifications */
-    .toast-container {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    
-    .toast {
-      min-width: 300px;
-      padding: 16px;
-      border-radius: 6px;
-      color: white;
-      font-weight: 500;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-      transform: translateX(400px);
-      opacity: 0;
-      animation: slideIn 0.3s ease forwards;
-      position: relative;
-    }
-    
-    .toast.removing {
-      animation: slideOut 0.3s ease forwards;
-    }
-    
-    .toast-success {
-      background: #10b981;
-    }
-    
-    .toast-error {
-      background: #ef4444;
-    }
-    
-    .toast-warning {
-      background: #f59e0b;
-    }
-    
-    .toast-info {
-      background: #3b82f6;
-    }
-    
-    .toast-close {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: none;
-      border: none;
-      color: white;
-      font-size: 18px;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-    }
-    
-    .toast-close:hover {
-      background: rgba(255,255,255,0.2);
-    }
-    
-    @keyframes slideIn {
-      from {
+  <head>
+    <title>WSX Notifications System</title>
+    <script src="/wsx.js"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 20px;
+      }
+
+      .main-content {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .notification-panel {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        height: fit-content;
+      }
+
+      /* Toast Notifications */
+      .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .toast {
+        min-width: 300px;
+        padding: 16px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         transform: translateX(400px);
         opacity: 0;
+        animation: slideIn 0.3s ease forwards;
+        position: relative;
       }
-      to {
-        transform: translateX(0);
-        opacity: 1;
+
+      .toast.removing {
+        animation: slideOut 0.3s ease forwards;
       }
-    }
-    
-    @keyframes slideOut {
-      from {
-        transform: translateX(0);
-        opacity: 1;
+
+      .toast-success {
+        background: #10b981;
       }
-      to {
-        transform: translateX(400px);
-        opacity: 0;
+
+      .toast-error {
+        background: #ef4444;
       }
-    }
-    
-    /* Notification Panel */
-    .notification-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    
-    .notification-badge {
-      background: #ef4444;
-      color: white;
-      border-radius: 50%;
-      padding: 4px 8px;
-      font-size: 12px;
-      font-weight: bold;
-    }
-    
-    .notification-list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    
-    .notification-item {
-      padding: 12px;
-      border-bottom: 1px solid #e5e7eb;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    
-    .notification-item:hover {
-      background-color: #f9fafb;
-    }
-    
-    .notification-item.unread {
-      background-color: #eff6ff;
-      border-left: 4px solid #3b82f6;
-    }
-    
-    .notification-item:last-child {
-      border-bottom: none;
-    }
-    
-    .notification-title {
-      font-weight: 500;
-      margin-bottom: 4px;
-      color: #111827;
-    }
-    
-    .notification-message {
-      font-size: 14px;
-      color: #6b7280;
-      margin-bottom: 4px;
-    }
-    
-    .notification-time {
-      font-size: 12px;
-      color: #9ca3af;
-    }
-    
-    /* System Alerts */
-    .system-alert {
-      background: #fef3c7;
-      border: 1px solid #f59e0b;
-      border-radius: 6px;
-      padding: 16px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    
-    .system-alert.error {
-      background: #fee2e2;
-      border-color: #ef4444;
-    }
-    
-    .system-alert.success {
-      background: #d1fae5;
-      border-color: #10b981;
-    }
-    
-    .system-alert.info {
-      background: #dbeafe;
-      border-color: #3b82f6;
-    }
-    
-    .alert-icon {
-      font-size: 20px;
-    }
-    
-    .alert-content {
-      flex: 1;
-    }
-    
-    .alert-title {
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-    
-    .alert-message {
-      font-size: 14px;
-      color: #6b7280;
-    }
-    
-    .alert-close {
-      background: none;
-      border: none;
-      font-size: 18px;
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-    }
-    
-    /* Controls */
-    .controls {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-    
-    .btn {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: background-color 0.2s;
-    }
-    
-    .btn-primary {
-      background: #3b82f6;
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background: #2563eb;
-    }
-    
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #374151;
-    }
-    
-    .btn-secondary:hover {
-      background: #d1d5db;
-    }
-    
-    .btn-success {
-      background: #10b981;
-      color: white;
-    }
-    
-    .btn-success:hover {
-      background: #059669;
-    }
-    
-    .btn-danger {
-      background: #ef4444;
-      color: white;
-    }
-    
-    .btn-danger:hover {
-      background: #dc2626;
-    }
-    
-    .btn-warning {
-      background: #f59e0b;
-      color: white;
-    }
-    
-    .btn-warning:hover {
-      background: #d97706;
-    }
-  </style>
-</head>
-<body>
-  <div wx-config='{"url": "ws://localhost:3000/ws"}'>
-    <!-- Toast Container -->
-    <div id="toast-container" class="toast-container"></div>
-    
-    <!-- System Alerts -->
-    <div id="system-alerts"></div>
-    
-    <div class="container">
-      <div class="main-content">
-        <h1>Notification System Demo</h1>
-        
-        <div class="controls">
-          <button class="btn btn-success" wx-send="show-toast" wx-target="#toast-container" data-type="success">
-            Success Toast
-          </button>
-          <button class="btn btn-danger" wx-send="show-toast" wx-target="#toast-container" data-type="error">
-            Error Toast
-          </button>
-          <button class="btn btn-warning" wx-send="show-toast" wx-target="#toast-container" data-type="warning">
-            Warning Toast
-          </button>
-          <button class="btn btn-primary" wx-send="show-toast" wx-target="#toast-container" data-type="info">
-            Info Toast
-          </button>
+
+      .toast-warning {
+        background: #f59e0b;
+      }
+
+      .toast-info {
+        background: #3b82f6;
+      }
+
+      .toast-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+      }
+
+      .toast-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+      }
+
+      /* Notification Panel */
+      .notification-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .notification-badge {
+        background: #ef4444;
+        color: white;
+        border-radius: 50%;
+        padding: 4px 8px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .notification-list {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .notification-item {
+        padding: 12px;
+        border-bottom: 1px solid #e5e7eb;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .notification-item:hover {
+        background-color: #f9fafb;
+      }
+
+      .notification-item.unread {
+        background-color: #eff6ff;
+        border-left: 4px solid #3b82f6;
+      }
+
+      .notification-item:last-child {
+        border-bottom: none;
+      }
+
+      .notification-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: #111827;
+      }
+
+      .notification-message {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 4px;
+      }
+
+      .notification-time {
+        font-size: 12px;
+        color: #9ca3af;
+      }
+
+      /* System Alerts */
+      .system-alert {
+        background: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 6px;
+        padding: 16px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .system-alert.error {
+        background: #fee2e2;
+        border-color: #ef4444;
+      }
+
+      .system-alert.success {
+        background: #d1fae5;
+        border-color: #10b981;
+      }
+
+      .system-alert.info {
+        background: #dbeafe;
+        border-color: #3b82f6;
+      }
+
+      .alert-icon {
+        font-size: 20px;
+      }
+
+      .alert-content {
+        flex: 1;
+      }
+
+      .alert-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .alert-message {
+        font-size: 14px;
+        color: #6b7280;
+      }
+
+      .alert-close {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+      }
+
+      /* Controls */
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+
+      .btn {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s;
+      }
+
+      .btn-primary {
+        background: #3b82f6;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #2563eb;
+      }
+
+      .btn-secondary {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      .btn-secondary:hover {
+        background: #d1d5db;
+      }
+
+      .btn-success {
+        background: #10b981;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #059669;
+      }
+
+      .btn-danger {
+        background: #ef4444;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #dc2626;
+      }
+
+      .btn-warning {
+        background: #f59e0b;
+        color: white;
+      }
+
+      .btn-warning:hover {
+        background: #d97706;
+      }
+    </style>
+  </head>
+  <body>
+    <div wx-config='{"url": "ws://localhost:3000/ws"}'>
+      <!-- Toast Container -->
+      <div id="toast-container" class="toast-container"></div>
+
+      <!-- System Alerts -->
+      <div id="system-alerts"></div>
+
+      <div class="container">
+        <div class="main-content">
+          <h1>Notification System Demo</h1>
+
+          <div class="controls">
+            <button
+              class="btn btn-success"
+              wx-send="show-toast"
+              wx-target="#toast-container"
+              data-type="success"
+            >
+              Success Toast
+            </button>
+            <button
+              class="btn btn-danger"
+              wx-send="show-toast"
+              wx-target="#toast-container"
+              data-type="error"
+            >
+              Error Toast
+            </button>
+            <button
+              class="btn btn-warning"
+              wx-send="show-toast"
+              wx-target="#toast-container"
+              data-type="warning"
+            >
+              Warning Toast
+            </button>
+            <button
+              class="btn btn-primary"
+              wx-send="show-toast"
+              wx-target="#toast-container"
+              data-type="info"
+            >
+              Info Toast
+            </button>
+          </div>
+
+          <div class="controls">
+            <button
+              class="btn btn-secondary"
+              wx-send="show-system-alert"
+              wx-target="#system-alerts"
+              data-type="info"
+            >
+              System Alert
+            </button>
+            <button
+              class="btn btn-secondary"
+              wx-send="broadcast-notification"
+              wx-target="#system-alerts"
+            >
+              Broadcast to All
+            </button>
+            <button
+              class="btn btn-secondary"
+              wx-send="send-private-message"
+              wx-target="#system-alerts"
+            >
+              Send Private Message
+            </button>
+          </div>
+
+          <h2>Activity Feed</h2>
+          <div id="activity-feed">
+            <p>Activity will appear here...</p>
+          </div>
         </div>
-        
-        <div class="controls">
-          <button class="btn btn-secondary" wx-send="show-system-alert" wx-target="#system-alerts" data-type="info">
-            System Alert
-          </button>
-          <button class="btn btn-secondary" wx-send="broadcast-notification" wx-target="#system-alerts">
-            Broadcast to All
-          </button>
-          <button class="btn btn-secondary" wx-send="send-private-message" wx-target="#system-alerts">
-            Send Private Message
-          </button>
-        </div>
-        
-        <h2>Activity Feed</h2>
-        <div id="activity-feed">
-          <p>Activity will appear here...</p>
-        </div>
-      </div>
-      
-      <div class="notification-panel">
-        <div class="notification-header">
-          <h3>Notifications</h3>
-          <span id="notification-badge" class="notification-badge" style="display: none;">0</span>
-        </div>
-        
-        <div class="controls">
-          <button class="btn btn-secondary" wx-send="mark-all-read" wx-target="#notification-list">
-            Mark All Read
-          </button>
-          <button class="btn btn-secondary" wx-send="clear-notifications" wx-target="#notification-list">
-            Clear All
-          </button>
-        </div>
-        
-        <div id="notification-list" class="notification-list">
-          <!-- Notifications will be populated here -->
+
+        <div class="notification-panel">
+          <div class="notification-header">
+            <h3>Notifications</h3>
+            <span
+              id="notification-badge"
+              class="notification-badge"
+              style="display: none;"
+              >0</span
+            >
+          </div>
+
+          <div class="controls">
+            <button
+              class="btn btn-secondary"
+              wx-send="mark-all-read"
+              wx-target="#notification-list"
+            >
+              Mark All Read
+            </button>
+            <button
+              class="btn btn-secondary"
+              wx-send="clear-notifications"
+              wx-target="#notification-list"
+            >
+              Clear All
+            </button>
+          </div>
+
+          <div id="notification-list" class="notification-list">
+            <!-- Notifications will be populated here -->
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <script>
-    // Auto-remove toasts after 5 seconds
-    function autoRemoveToast(toastElement) {
-      setTimeout(() => {
-        toastElement.classList.add('removing');
+    <script>
+      // Auto-remove toasts after 5 seconds
+      function autoRemoveToast(toastElement) {
         setTimeout(() => {
-          toastElement.remove();
-        }, 300);
-      }, 5000);
-    }
-    
-    // Handle toast close buttons
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('toast-close')) {
-        const toast = e.target.closest('.toast');
-        toast.classList.add('removing');
-        setTimeout(() => {
-          toast.remove();
-        }, 300);
+          toastElement.classList.add("removing");
+          setTimeout(() => {
+            toastElement.remove();
+          }, 300);
+        }, 5000);
       }
-    });
-    
-    // Handle alert close buttons
-    document.addEventListener('click', (e) => {
-      if (e.target.classList.contains('alert-close')) {
-        const alert = e.target.closest('.system-alert');
-        alert.remove();
-      }
-    });
-    
-    // Auto-load notifications on page load
-    window.addEventListener('load', () => {
-      window.wsx.send('load-notifications', '#notification-list');
-    });
-  </script>
-</body>
+
+      // Handle toast close buttons
+      document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("toast-close")) {
+          const toast = e.target.closest(".toast");
+          toast.classList.add("removing");
+          setTimeout(() => {
+            toast.remove();
+          }, 300);
+        }
+      });
+
+      // Handle alert close buttons
+      document.addEventListener("click", (e) => {
+        if (e.target.classList.contains("alert-close")) {
+          const alert = e.target.closest(".system-alert");
+          alert.remove();
+        }
+      });
+
+      // Auto-load notifications on page load
+      window.addEventListener("load", () => {
+        window.wsx.send("load-notifications", "#notification-list");
+      });
+    </script>
+  </body>
 </html>
 ```
 
 ### Server Implementation
+
 ```javascript
-import { createExpressWSXServer } from "@wsx/express";
+import { createExpressWSXServer } from "@wsx-sh/express";
 import express from "express";
 
 const wsx = createExpressWSXServer();
@@ -425,31 +474,31 @@ const systemMessages = [];
 
 // Mock user data
 const users = [
-  { id: 1, name: 'John Doe', email: 'john@example.com' },
-  { id: 2, name: 'Jane Smith', email: 'jane@example.com' },
-  { id: 3, name: 'Bob Johnson', email: 'bob@example.com' }
+  { id: 1, name: "John Doe", email: "john@example.com" },
+  { id: 2, name: "Jane Smith", email: "jane@example.com" },
+  { id: 3, name: "Bob Johnson", email: "bob@example.com" },
 ];
 
 // Initialize mock notifications
 function initMockNotifications() {
-  users.forEach(user => {
+  users.forEach((user) => {
     notifications.set(user.id, [
       {
         id: Date.now() + Math.random(),
-        title: 'Welcome!',
-        message: 'Thanks for joining our platform',
-        type: 'info',
+        title: "Welcome!",
+        message: "Thanks for joining our platform",
+        type: "info",
         read: false,
-        timestamp: new Date(Date.now() - 3600000).toISOString()
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
       },
       {
         id: Date.now() + Math.random(),
-        title: 'New Feature Available',
-        message: 'Check out our new dashboard widgets',
-        type: 'info',
+        title: "New Feature Available",
+        message: "Check out our new dashboard widgets",
+        type: "info",
         read: false,
-        timestamp: new Date(Date.now() - 7200000).toISOString()
-      }
+        timestamp: new Date(Date.now() - 7200000).toISOString(),
+      },
     ]);
   });
 }
@@ -458,58 +507,58 @@ initMockNotifications();
 
 // Show toast notification
 wsx.on("show-toast", async (request, connection) => {
-  const type = request.data.type || 'info';
+  const type = request.data.type || "info";
   const messages = {
-    success: 'Operation completed successfully!',
-    error: 'An error occurred. Please try again.',
-    warning: 'Please check your input and try again.',
-    info: 'This is an informational message.'
+    success: "Operation completed successfully!",
+    error: "An error occurred. Please try again.",
+    warning: "Please check your input and try again.",
+    info: "This is an informational message.",
   };
-  
+
   const toastId = Date.now() + Math.random();
   const message = messages[type];
-  
+
   const toastHtml = `
     <div class="toast toast-${type}" data-toast-id="${toastId}">
       <div>${message}</div>
       <button class="toast-close">×</button>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
     html: toastHtml,
-    swap: "beforeend"
+    swap: "beforeend",
   };
 });
 
 // Show system alert
 wsx.on("show-system-alert", async (request, connection) => {
-  const type = request.data.type || 'info';
+  const type = request.data.type || "info";
   const alerts = {
     info: {
-      icon: 'ℹ️',
-      title: 'System Information',
-      message: 'Scheduled maintenance tonight at 2 AM EST'
+      icon: "ℹ️",
+      title: "System Information",
+      message: "Scheduled maintenance tonight at 2 AM EST",
     },
     warning: {
-      icon: '⚠️',
-      title: 'System Warning',
-      message: 'High server load detected'
+      icon: "⚠️",
+      title: "System Warning",
+      message: "High server load detected",
     },
     error: {
-      icon: '❌',
-      title: 'System Error',
-      message: 'Database connection temporarily unavailable'
+      icon: "❌",
+      title: "System Error",
+      message: "Database connection temporarily unavailable",
     },
     success: {
-      icon: '✅',
-      title: 'System Update',
-      message: 'All systems are operating normally'
-    }
+      icon: "✅",
+      title: "System Update",
+      message: "All systems are operating normally",
+    },
   };
-  
+
   const alert = alerts[type];
   const alertHtml = `
     <div class="system-alert ${type}">
@@ -521,37 +570,37 @@ wsx.on("show-system-alert", async (request, connection) => {
       <button class="alert-close">×</button>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
     html: alertHtml,
-    swap: "beforeend"
+    swap: "beforeend",
   };
 });
 
 // Broadcast notification to all users
 wsx.on("broadcast-notification", async (request, connection) => {
-  const user = connection.sessionData?.user || { name: 'Anonymous' };
+  const user = connection.sessionData?.user || { name: "Anonymous" };
   const message = {
     id: Date.now() + Math.random(),
-    title: 'Broadcast Message',
+    title: "Broadcast Message",
     message: `${user.name} sent a broadcast message to all users`,
-    type: 'info',
+    type: "info",
     read: false,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   // Add to all users' notifications
-  users.forEach(user => {
+  users.forEach((user) => {
     const userNotifications = notifications.get(user.id) || [];
     userNotifications.unshift(message);
     notifications.set(user.id, userNotifications);
   });
-  
+
   // Broadcast to all connected clients
   const connections = wsx.getConnections();
-  connections.forEach(conn => {
+  connections.forEach((conn) => {
     // Send toast notification
     const toastHtml = `
       <div class="toast toast-info">
@@ -559,14 +608,19 @@ wsx.on("broadcast-notification", async (request, connection) => {
         <button class="toast-close">×</button>
       </div>
     `;
-    
+
     wsx.sendToConnection(conn.id, "#toast-container", toastHtml, "beforeend");
-    
+
     // Update notification list
     const notificationHtml = generateNotificationHtml(message);
-    wsx.sendToConnection(conn.id, "#notification-list", notificationHtml, "afterbegin");
+    wsx.sendToConnection(
+      conn.id,
+      "#notification-list",
+      notificationHtml,
+      "afterbegin"
+    );
   });
-  
+
   return {
     id: request.id,
     target: request.target,
@@ -580,33 +634,34 @@ wsx.on("broadcast-notification", async (request, connection) => {
         <button class="alert-close">×</button>
       </div>
     `,
-    swap: "beforeend"
+    swap: "beforeend",
   };
 });
 
 // Send private message
 wsx.on("send-private-message", async (request, connection) => {
-  const sender = connection.sessionData?.user || { name: 'Anonymous' };
+  const sender = connection.sessionData?.user || { name: "Anonymous" };
   const targetUser = users[Math.floor(Math.random() * users.length)];
-  
+
   const message = {
     id: Date.now() + Math.random(),
-    title: 'Private Message',
+    title: "Private Message",
     message: `${sender.name} sent you a private message`,
-    type: 'info',
+    type: "info",
     read: false,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   // Add to target user's notifications
   const userNotifications = notifications.get(targetUser.id) || [];
   userNotifications.unshift(message);
   notifications.set(targetUser.id, userNotifications);
-  
+
   // Find target user's connection
-  const targetConnection = wsx.getConnections()
-    .find(conn => conn.sessionData?.user?.id === targetUser.id);
-  
+  const targetConnection = wsx
+    .getConnections()
+    .find((conn) => conn.sessionData?.user?.id === targetUser.id);
+
   if (targetConnection) {
     // Send toast notification
     const toastHtml = `
@@ -615,14 +670,24 @@ wsx.on("send-private-message", async (request, connection) => {
         <button class="toast-close">×</button>
       </div>
     `;
-    
-    wsx.sendToConnection(targetConnection.id, "#toast-container", toastHtml, "beforeend");
-    
+
+    wsx.sendToConnection(
+      targetConnection.id,
+      "#toast-container",
+      toastHtml,
+      "beforeend"
+    );
+
     // Update notification list
     const notificationHtml = generateNotificationHtml(message);
-    wsx.sendToConnection(targetConnection.id, "#notification-list", notificationHtml, "afterbegin");
+    wsx.sendToConnection(
+      targetConnection.id,
+      "#notification-list",
+      notificationHtml,
+      "afterbegin"
+    );
   }
-  
+
   return {
     id: request.id,
     target: request.target,
@@ -636,7 +701,7 @@ wsx.on("send-private-message", async (request, connection) => {
         <button class="alert-close">×</button>
       </div>
     `,
-    swap: "beforeend"
+    swap: "beforeend",
   };
 });
 
@@ -644,30 +709,35 @@ wsx.on("send-private-message", async (request, connection) => {
 wsx.on("load-notifications", async (request, connection) => {
   const user = connection.sessionData?.user || users[0]; // Default to first user for demo
   const userNotifications = notifications.get(user.id) || [];
-  
+
   if (userNotifications.length === 0) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="notification-item">No notifications yet</div>`
+      html: `<div class="notification-item">No notifications yet</div>`,
     };
   }
-  
-  const notificationsHtml = userNotifications.map(generateNotificationHtml).join('');
-  const unreadCount = userNotifications.filter(n => !n.read).length;
-  
+
+  const notificationsHtml = userNotifications
+    .map(generateNotificationHtml)
+    .join("");
+  const unreadCount = userNotifications.filter((n) => !n.read).length;
+
   return [
     {
       id: request.id,
       target: request.target,
-      html: notificationsHtml
+      html: notificationsHtml,
     },
     {
       id: request.id,
       target: "#notification-badge",
-      html: unreadCount > 0 ? `<span class="notification-badge">${unreadCount}</span>` : '',
-      swap: "outerHTML"
-    }
+      html:
+        unreadCount > 0
+          ? `<span class="notification-badge">${unreadCount}</span>`
+          : "",
+      swap: "outerHTML",
+    },
   ];
 });
 
@@ -675,25 +745,27 @@ wsx.on("load-notifications", async (request, connection) => {
 wsx.on("mark-all-read", async (request, connection) => {
   const user = connection.sessionData?.user || users[0];
   const userNotifications = notifications.get(user.id) || [];
-  
-  userNotifications.forEach(notification => {
+
+  userNotifications.forEach((notification) => {
     notification.read = true;
   });
-  
-  const notificationsHtml = userNotifications.map(generateNotificationHtml).join('');
-  
+
+  const notificationsHtml = userNotifications
+    .map(generateNotificationHtml)
+    .join("");
+
   return [
     {
       id: request.id,
       target: request.target,
-      html: notificationsHtml
+      html: notificationsHtml,
     },
     {
       id: request.id,
       target: "#notification-badge",
-      html: '',
-      swap: "outerHTML"
-    }
+      html: "",
+      swap: "outerHTML",
+    },
   ];
 });
 
@@ -701,27 +773,27 @@ wsx.on("mark-all-read", async (request, connection) => {
 wsx.on("clear-notifications", async (request, connection) => {
   const user = connection.sessionData?.user || users[0];
   notifications.set(user.id, []);
-  
+
   return [
     {
       id: request.id,
       target: request.target,
-      html: `<div class="notification-item">No notifications yet</div>`
+      html: `<div class="notification-item">No notifications yet</div>`,
     },
     {
       id: request.id,
       target: "#notification-badge",
-      html: '',
-      swap: "outerHTML"
-    }
+      html: "",
+      swap: "outerHTML",
+    },
   ];
 });
 
 // Helper function to generate notification HTML
 function generateNotificationHtml(notification) {
   const timeAgo = formatTimeAgo(new Date(notification.timestamp));
-  const unreadClass = notification.read ? '' : 'unread';
-  
+  const unreadClass = notification.read ? "" : "unread";
+
   return `
     <div class="notification-item ${unreadClass}" data-notification-id="${notification.id}">
       <div class="notification-title">${notification.title}</div>
@@ -738,8 +810,8 @@ function formatTimeAgo(date) {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
-  
-  if (diffMins < 1) return 'Just now';
+
+  if (diffMins < 1) return "Just now";
   if (diffMins < 60) return `${diffMins}m ago`;
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays < 7) return `${diffDays}d ago`;
@@ -750,31 +822,49 @@ function formatTimeAgo(date) {
 setInterval(() => {
   const randomUser = users[Math.floor(Math.random() * users.length)];
   const notificationTypes = [
-    { title: 'New Order', message: 'You have received a new order', type: 'success' },
-    { title: 'System Update', message: 'System has been updated', type: 'info' },
-    { title: 'Payment Received', message: 'Payment has been processed', type: 'success' },
-    { title: 'Server Alert', message: 'Server is experiencing high load', type: 'warning' }
+    {
+      title: "New Order",
+      message: "You have received a new order",
+      type: "success",
+    },
+    {
+      title: "System Update",
+      message: "System has been updated",
+      type: "info",
+    },
+    {
+      title: "Payment Received",
+      message: "Payment has been processed",
+      type: "success",
+    },
+    {
+      title: "Server Alert",
+      message: "Server is experiencing high load",
+      type: "warning",
+    },
   ];
-  
-  const randomNotification = notificationTypes[Math.floor(Math.random() * notificationTypes.length)];
+
+  const randomNotification =
+    notificationTypes[Math.floor(Math.random() * notificationTypes.length)];
   const notification = {
     id: Date.now() + Math.random(),
     title: randomNotification.title,
     message: randomNotification.message,
     type: randomNotification.type,
     read: false,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   // Add to user's notifications
   const userNotifications = notifications.get(randomUser.id) || [];
   userNotifications.unshift(notification);
   notifications.set(randomUser.id, userNotifications);
-  
+
   // Find user's connection and send notification
-  const userConnection = wsx.getConnections()
-    .find(conn => conn.sessionData?.user?.id === randomUser.id);
-  
+  const userConnection = wsx
+    .getConnections()
+    .find((conn) => conn.sessionData?.user?.id === randomUser.id);
+
   if (userConnection) {
     // Send toast notification
     const toastHtml = `
@@ -783,57 +873,75 @@ setInterval(() => {
         <button class="toast-close">×</button>
       </div>
     `;
-    
-    wsx.sendToConnection(userConnection.id, "#toast-container", toastHtml, "beforeend");
-    
+
+    wsx.sendToConnection(
+      userConnection.id,
+      "#toast-container",
+      toastHtml,
+      "beforeend"
+    );
+
     // Update notification list
     const notificationHtml = generateNotificationHtml(notification);
-    wsx.sendToConnection(userConnection.id, "#notification-list", notificationHtml, "afterbegin");
-    
+    wsx.sendToConnection(
+      userConnection.id,
+      "#notification-list",
+      notificationHtml,
+      "afterbegin"
+    );
+
     // Update badge
-    const unreadCount = userNotifications.filter(n => !n.read).length;
-    wsx.sendToConnection(userConnection.id, "#notification-badge", 
-      `<span class="notification-badge">${unreadCount}</span>`, "outerHTML");
+    const unreadCount = userNotifications.filter((n) => !n.read).length;
+    wsx.sendToConnection(
+      userConnection.id,
+      "#notification-badge",
+      `<span class="notification-badge">${unreadCount}</span>`,
+      "outerHTML"
+    );
   }
 }, 30000);
 
-app.use(express.static('public'));
+app.use(express.static("public"));
 app.listen(3000, () => {
-  console.log('Notifications server running on http://localhost:3000');
+  console.log("Notifications server running on http://localhost:3000");
 });
 ```
 
 ## Advanced Notification Features
 
 ### Push Notification Integration
+
 ```javascript
 // Push notification service
 class PushNotificationService {
   constructor() {
     this.subscriptions = new Map();
   }
-  
+
   subscribe(userId, subscription) {
     this.subscriptions.set(userId, subscription);
   }
-  
+
   async sendPushNotification(userId, notification) {
     const subscription = this.subscriptions.get(userId);
     if (!subscription) return;
-    
+
     try {
-      await webpush.sendNotification(subscription, JSON.stringify({
-        title: notification.title,
-        body: notification.message,
-        icon: '/icon-192x192.png',
-        badge: '/badge-72x72.png',
-        actions: [
-          { action: 'open', title: 'Open' },
-          { action: 'close', title: 'Close' }
-        ]
-      }));
+      await webpush.sendNotification(
+        subscription,
+        JSON.stringify({
+          title: notification.title,
+          body: notification.message,
+          icon: "/icon-192x192.png",
+          badge: "/badge-72x72.png",
+          actions: [
+            { action: "open", title: "Open" },
+            { action: "close", title: "Close" },
+          ],
+        })
+      );
     } catch (error) {
-      console.error('Push notification failed:', error);
+      console.error("Push notification failed:", error);
     }
   }
 }
@@ -844,53 +952,55 @@ const pushService = new PushNotificationService();
 wsx.on("subscribe-push", async (request, connection) => {
   const { subscription } = request.data;
   const user = connection.sessionData?.user;
-  
+
   if (user && subscription) {
     pushService.subscribe(user.id, subscription);
-    
+
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="success">Push notifications enabled</div>`
+      html: `<div class="success">Push notifications enabled</div>`,
     };
   }
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div class="error">Failed to enable push notifications</div>`
+    html: `<div class="error">Failed to enable push notifications</div>`,
   };
 });
 ```
 
 ### Notification Preferences
+
 ```javascript
 // Notification preferences
 const userPreferences = new Map();
 
 wsx.on("update-notification-preferences", async (request, connection) => {
   const user = connection.sessionData?.user;
-  const { emailNotifications, pushNotifications, smsNotifications, types } = request.data;
-  
+  const { emailNotifications, pushNotifications, smsNotifications, types } =
+    request.data;
+
   if (!user) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Please log in to update preferences</div>`
+      html: `<div class="error">Please log in to update preferences</div>`,
     };
   }
-  
+
   userPreferences.set(user.id, {
     email: emailNotifications,
     push: pushNotifications,
     sms: smsNotifications,
-    types: types || []
+    types: types || [],
   });
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div class="success">Notification preferences updated</div>`
+    html: `<div class="success">Notification preferences updated</div>`,
   };
 });
 
@@ -898,30 +1008,31 @@ wsx.on("update-notification-preferences", async (request, connection) => {
 function shouldReceiveNotification(userId, notificationType) {
   const preferences = userPreferences.get(userId);
   if (!preferences) return true; // Default to sending
-  
+
   return preferences.types.includes(notificationType);
 }
 ```
 
 ### Email Notifications
+
 ```javascript
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
 
 // Email service
 const emailTransporter = nodemailer.createTransporter({
   host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === 'true',
+  secure: process.env.SMTP_SECURE === "true",
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
+    pass: process.env.SMTP_PASS,
+  },
 });
 
 async function sendEmailNotification(user, notification) {
   const preferences = userPreferences.get(user.id);
   if (!preferences?.email) return;
-  
+
   try {
     await emailTransporter.sendMail({
       from: process.env.FROM_EMAIL,
@@ -938,91 +1049,95 @@ async function sendEmailNotification(user, notification) {
             </small>
           </div>
         </div>
-      `
+      `,
     });
   } catch (error) {
-    console.error('Email notification failed:', error);
+    console.error("Email notification failed:", error);
   }
 }
 ```
 
 ### Notification Templates
+
 ```javascript
 // Notification templates
 const notificationTemplates = {
   welcome: {
-    title: 'Welcome to {{appName}}!',
-    message: 'Thank you for joining us, {{userName}}!',
-    type: 'success'
+    title: "Welcome to {{appName}}!",
+    message: "Thank you for joining us, {{userName}}!",
+    type: "success",
   },
   orderConfirmation: {
-    title: 'Order Confirmed',
-    message: 'Your order #{{orderNumber}} has been confirmed',
-    type: 'success'
+    title: "Order Confirmed",
+    message: "Your order #{{orderNumber}} has been confirmed",
+    type: "success",
   },
   paymentReceived: {
-    title: 'Payment Received',
-    message: 'We have received your payment of ${{amount}}',
-    type: 'success'
+    title: "Payment Received",
+    message: "We have received your payment of ${{amount}}",
+    type: "success",
   },
   systemMaintenance: {
-    title: 'Scheduled Maintenance',
-    message: 'System maintenance is scheduled for {{date}} at {{time}}',
-    type: 'warning'
+    title: "Scheduled Maintenance",
+    message: "System maintenance is scheduled for {{date}} at {{time}}",
+    type: "warning",
   },
   securityAlert: {
-    title: 'Security Alert',
-    message: 'Login detected from {{location}} at {{time}}',
-    type: 'warning'
-  }
+    title: "Security Alert",
+    message: "Login detected from {{location}} at {{time}}",
+    type: "warning",
+  },
 };
 
 // Send templated notification
 wsx.on("send-templated-notification", async (request, connection) => {
   const { templateId, variables, targetUserId } = request.data;
   const template = notificationTemplates[templateId];
-  
+
   if (!template) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Template not found</div>`
+      html: `<div class="error">Template not found</div>`,
     };
   }
-  
+
   // Replace template variables
   let title = template.title;
   let message = template.message;
-  
+
   Object.entries(variables).forEach(([key, value]) => {
     title = title.replace(`{{${key}}}`, value);
     message = message.replace(`{{${key}}}`, value);
   });
-  
+
   const notification = {
     id: Date.now() + Math.random(),
     title,
     message,
     type: template.type,
     read: false,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
-  
+
   // Send to specific user or all users
-  const targetUsers = targetUserId ? [users.find(u => u.id === targetUserId)] : users;
-  
-  targetUsers.forEach(user => {
+  const targetUsers = targetUserId
+    ? [users.find((u) => u.id === targetUserId)]
+    : users;
+
+  targetUsers.forEach((user) => {
     if (!user) return;
-    
+
     // Add to user's notifications
     const userNotifications = notifications.get(user.id) || [];
     userNotifications.unshift(notification);
     notifications.set(user.id, userNotifications);
-    
+
     // Send to connected user
-    const userConnection = wsx.getConnections()
-      .find(conn => conn.sessionData?.user?.id === user.id);
-    
+    const userConnection = wsx
+      .getConnections()
+      .find((conn) => conn.sessionData?.user?.id === user.id);
+
     if (userConnection) {
       const toastHtml = `
         <div class="toast toast-${notification.type}">
@@ -1030,81 +1145,89 @@ wsx.on("send-templated-notification", async (request, connection) => {
           <button class="toast-close">×</button>
         </div>
       `;
-      
-      wsx.sendToConnection(userConnection.id, "#toast-container", toastHtml, "beforeend");
+
+      wsx.sendToConnection(
+        userConnection.id,
+        "#toast-container",
+        toastHtml,
+        "beforeend"
+      );
     }
   });
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div class="success">Notification sent using template: ${templateId}</div>`
+    html: `<div class="success">Notification sent using template: ${templateId}</div>`,
   };
 });
 ```
 
 ### Notification Analytics
+
 ```javascript
 // Track notification analytics
 const notificationAnalytics = {
   sent: new Map(),
   opened: new Map(),
-  clicked: new Map()
+  clicked: new Map(),
 };
 
 wsx.on("track-notification-event", async (request, connection) => {
   const { notificationId, event, data } = request.data;
-  
+
   switch (event) {
-    case 'sent':
+    case "sent":
       notificationAnalytics.sent.set(notificationId, {
         timestamp: Date.now(),
-        userId: connection.sessionData?.user?.id
+        userId: connection.sessionData?.user?.id,
       });
       break;
-      
-    case 'opened':
+
+    case "opened":
       notificationAnalytics.opened.set(notificationId, {
         timestamp: Date.now(),
-        userId: connection.sessionData?.user?.id
+        userId: connection.sessionData?.user?.id,
       });
       break;
-      
-    case 'clicked':
+
+    case "clicked":
       notificationAnalytics.clicked.set(notificationId, {
         timestamp: Date.now(),
         userId: connection.sessionData?.user?.id,
-        action: data.action
+        action: data.action,
       });
       break;
   }
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: '' // No visual feedback needed
+    html: "", // No visual feedback needed
   };
 });
 
 // Get notification analytics
 wsx.on("get-notification-analytics", async (request, connection) => {
   const user = connection.sessionData?.user;
-  
+
   if (!user?.isAdmin) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Admin access required</div>`
+      html: `<div class="error">Admin access required</div>`,
     };
   }
-  
+
   const totalSent = notificationAnalytics.sent.size;
   const totalOpened = notificationAnalytics.opened.size;
   const totalClicked = notificationAnalytics.clicked.size;
-  
-  const openRate = totalSent > 0 ? (totalOpened / totalSent * 100).toFixed(1) : 0;
-  const clickRate = totalOpened > 0 ? (totalClicked / totalOpened * 100).toFixed(1) : 0;
-  
+
+  const openRate =
+    totalSent > 0 ? ((totalOpened / totalSent) * 100).toFixed(1) : 0;
+  const clickRate =
+    totalOpened > 0 ? ((totalClicked / totalOpened) * 100).toFixed(1) : 0;
+
   const analyticsHtml = `
     <div class="notification-analytics">
       <h3>Notification Analytics</h3>
@@ -1132,11 +1255,11 @@ wsx.on("get-notification-analytics", async (request, connection) => {
       </div>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: analyticsHtml
+    html: analyticsHtml,
   };
 });
 ```

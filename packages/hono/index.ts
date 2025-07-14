@@ -1,6 +1,11 @@
-import { Hono } from 'hono';
-import { upgradeWebSocket } from 'hono/cloudflare-workers';
-import { WSXServer, WSXServerAdapter, WSXConnection, WSXServerConfig } from '@wsx/core';
+import { Hono } from "hono";
+import { upgradeWebSocket } from "hono/cloudflare-workers";
+import {
+  WSXServer,
+  WSXServerAdapter,
+  WSXConnection,
+  WSXServerConfig,
+} from "../core";
 
 export class HonoAdapter implements WSXServerAdapter {
   private app: Hono;
@@ -11,7 +16,10 @@ export class HonoAdapter implements WSXServerAdapter {
     this.app = new Hono();
   }
 
-  setupWebSocket(path: string, onMessage: (data: string, connection: WSXConnection) => void): void {
+  setupWebSocket(
+    path: string,
+    onMessage: (data: string, connection: WSXConnection) => void
+  ): void {
     this.app.get(
       path,
       upgradeWebSocket((c) => ({
@@ -30,16 +38,16 @@ export class HonoAdapter implements WSXServerAdapter {
               try {
                 ws.send(data);
               } catch (error) {
-                console.error('Error sending data:', error);
+                console.error("Error sending data:", error);
               }
             },
             close: () => {
               try {
                 ws.close();
               } catch (error) {
-                console.error('Error closing connection:', error);
+                console.error("Error closing connection:", error);
               }
-            }
+            },
           };
 
           await onMessage(event.data.toString(), connection);
@@ -54,7 +62,7 @@ export class HonoAdapter implements WSXServerAdapter {
         },
 
         onError: (event, ws) => {
-          console.error('WSX WebSocket error:', event);
+          console.error("WSX WebSocket error:", event);
         },
       }))
     );

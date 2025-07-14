@@ -10,19 +10,20 @@ WSX integrates seamlessly with Hono, a lightweight web framework designed for ed
 ## Installation
 
 ```bash
-npm install @wsx/core @wsx/hono
+npm install @wsx-sh/core @wsx-sh/hono
 ```
 
 ## Basic Setup
 
 ### Quick Start
+
 ```javascript
-import { createHonoWSXServer } from "@wsx/hono";
+import { createHonoWSXServer } from "@wsx-sh/hono";
 import { Hono } from "hono";
 
 // Create WSX server with Hono adapter
 const wsx = createHonoWSXServer({
-  path: '/ws'
+  path: "/ws",
 });
 
 const app = wsx.getApp();
@@ -32,12 +33,12 @@ wsx.on("hello", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Hello from Hono at ${new Date().toISOString()}!</div>`
+    html: `<div>Hello from Hono at ${new Date().toISOString()}!</div>`,
   };
 });
 
 // Regular Hono routes
-app.get('/', (c) => {
+app.get("/", (c) => {
   return c.html(`
     <!DOCTYPE html>
     <html>
@@ -56,7 +57,7 @@ app.get('/', (c) => {
 });
 
 // Serve static files
-app.get('/wsx.js', (c) => {
+app.get("/wsx.js", (c) => {
   return c.text(getWSXClientScript());
 });
 
@@ -66,6 +67,7 @@ export default app;
 ## Edge Runtime Deployment
 
 ### Cloudflare Workers
+
 ```javascript
 // wrangler.toml
 [env.production]
@@ -79,7 +81,7 @@ bindings = [
 ]
 
 // src/index.js
-import { createHonoWSXServer } from "@wsx/hono";
+import { createHonoWSXServer } from "@wsx-sh/hono";
 
 const wsx = createHonoWSXServer({
   path: '/ws',
@@ -94,22 +96,22 @@ const app = wsx.getApp();
 wsx.on("send-message", async (request, connection) => {
   const { message, room } = request.data;
   const user = connection.sessionData?.user || { name: 'Anonymous' };
-  
+
   const messageHtml = `
     <div class="message">
       <strong>${user.name}:</strong> ${message}
       <span class="timestamp">${new Date().toLocaleTimeString()}</span>
     </div>
   `;
-  
+
   // Broadcast to all connections in room
   const roomConnections = wsx.getConnections()
     .filter(conn => conn.sessionData?.room === room);
-    
+
   roomConnections.forEach(conn => {
     wsx.sendToConnection(conn.id, "#messages", messageHtml, "beforeend");
   });
-  
+
   return {
     id: request.id,
     target: "#message-input",
@@ -121,13 +123,13 @@ wsx.on("send-message", async (request, connection) => {
 // Join room
 wsx.on("join-room", async (request, connection) => {
   const { room, username } = request.data;
-  
+
   connection.sessionData = {
     ...connection.sessionData,
     room,
     user: { name: username }
   };
-  
+
   return {
     id: request.id,
     target: request.target,
@@ -139,6 +141,7 @@ export default app;
 ```
 
 ### Deno Deploy
+
 ```javascript
 // deno.json
 {
@@ -148,12 +151,12 @@ export default app;
   },
   "imports": {
     "hono": "https://deno.land/x/hono@v4.0.0/mod.ts",
-    "@wsx/hono": "https://deno.land/x/wsx@v1.0.0/hono.ts"
+    "@wsx-sh/hono": "https://deno.land/x/wsx@v1.0.0/hono.ts"
   }
 }
 
 // src/main.ts
-import { createHonoWSXServer } from "@wsx/hono";
+import { createHonoWSXServer } from "@wsx-sh/hono";
 import { serve } from "https://deno.land/std@0.200.0/http/server.ts";
 
 const wsx = createHonoWSXServer({
@@ -165,7 +168,7 @@ const app = wsx.getApp();
 // Real-time dashboard
 wsx.on("get-stats", async (request, connection) => {
   const stats = await getSystemStats();
-  
+
   const statsHtml = `
     <div class="stats-grid">
       <div class="stat">
@@ -184,7 +187,7 @@ wsx.on("get-stats", async (request, connection) => {
       </div>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
@@ -196,7 +199,7 @@ wsx.on("get-stats", async (request, connection) => {
 setInterval(async () => {
   const connections = wsx.getConnections();
   const stats = await getSystemStats();
-  
+
   connections.forEach(conn => {
     wsx.sendToConnection(conn.id, "#live-stats", generateStatsHTML(stats));
   });
@@ -220,6 +223,7 @@ serve(app.fetch, { port: 8000 });
 ```
 
 ### Bun Runtime
+
 ```javascript
 // package.json
 {
@@ -231,12 +235,12 @@ serve(app.fetch, { port: 8000 });
   },
   "dependencies": {
     "hono": "^4.0.0",
-    "@wsx/hono": "^1.0.0"
+    "@wsx-sh/hono": "^1.0.0"
   }
 }
 
 // src/index.js
-import { createHonoWSXServer } from "@wsx/hono";
+import { createHonoWSXServer } from "@wsx-sh/hono";
 
 const wsx = createHonoWSXServer({
   path: '/ws'
@@ -247,19 +251,19 @@ const app = wsx.getApp();
 // File upload with real-time progress
 wsx.on("upload-file", async (request, connection) => {
   const { file, filename } = request.data;
-  
+
   try {
     // Write file using Bun's optimized file operations
     const path = `./uploads/${filename}`;
     await Bun.write(path, file);
-    
+
     // Broadcast upload completion
     wsx.broadcast("#upload-status", `
       <div class="upload-success">
         File "${filename}" uploaded successfully!
       </div>
     `);
-    
+
     return {
       id: request.id,
       target: request.target,
@@ -277,14 +281,14 @@ wsx.on("upload-file", async (request, connection) => {
 // Real-time file processing
 wsx.on("process-file", async (request, connection) => {
   const { filename } = request.data;
-  
+
   // Send processing updates
-  wsx.sendToConnection(connection.id, "#status", 
+  wsx.sendToConnection(connection.id, "#status",
     `<div>Processing ${filename}...</div>`);
-  
+
   // Process file (example: image optimization)
   const result = await processFile(filename);
-  
+
   return {
     id: request.id,
     target: request.target,
@@ -301,32 +305,36 @@ export default {
 ## Middleware Integration
 
 ### Authentication Middleware
+
 ```javascript
-import { jwt } from 'hono/jwt';
+import { jwt } from "hono/jwt";
 
 const app = wsx.getApp();
 
 // JWT authentication middleware
-app.use('/api/*', jwt({
-  secret: process.env.JWT_SECRET,
-}));
+app.use(
+  "/api/*",
+  jwt({
+    secret: process.env.JWT_SECRET,
+  })
+);
 
 // Protected API routes
-app.get('/api/profile', async (c) => {
-  const user = c.get('jwtPayload');
+app.get("/api/profile", async (c) => {
+  const user = c.get("jwtPayload");
   return c.json({ user });
 });
 
 // WSX authentication
 wsx.onConnection = async (connection) => {
   const token = extractTokenFromConnection(connection);
-  
+
   if (token) {
     try {
       const payload = await verifyJWT(token);
       connection.sessionData = { user: payload };
     } catch (error) {
-      connection.close(1008, 'Invalid token');
+      connection.close(1008, "Invalid token");
     }
   }
 };
@@ -334,59 +342,68 @@ wsx.onConnection = async (connection) => {
 function extractTokenFromConnection(connection) {
   // Extract from query parameter or header
   const url = new URL(connection.request.url);
-  return url.searchParams.get('token');
+  return url.searchParams.get("token");
 }
 ```
 
 ### CORS Middleware
-```javascript
-import { cors } from 'hono/cors';
 
-app.use('/api/*', cors({
-  origin: ['https://your-domain.com', 'https://www.your-domain.com'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowHeaders: ['Content-Type', 'Authorization'],
-}));
+```javascript
+import { cors } from "hono/cors";
+
+app.use(
+  "/api/*",
+  cors({
+    origin: ["https://your-domain.com", "https://www.your-domain.com"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  })
+);
 ```
 
 ### Rate Limiting
+
 ```javascript
-import { rateLimiter } from 'hono/rate-limiter';
+import { rateLimiter } from "hono/rate-limiter";
 
 // Rate limiting for API routes
-app.use('/api/*', rateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP'
-}));
+app.use(
+  "/api/*",
+  rateLimiter({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: "Too many requests from this IP",
+  })
+);
 
 // WSX-specific rate limiting
 const wsxRateLimiter = new Map();
 
 wsx.on("rate-limited-action", async (request, connection) => {
-  const ip = connection.ip || 'unknown';
+  const ip = connection.ip || "unknown";
   const key = `${ip}:${request.handler}`;
   const now = Date.now();
-  
+
   const limit = wsxRateLimiter.get(key);
-  
-  if (limit && now - limit.lastReset < 60000) { // 1 minute window
+
+  if (limit && now - limit.lastReset < 60000) {
+    // 1 minute window
     if (limit.count >= 10) {
       return {
         id: request.id,
         target: request.target,
-        html: `<div class="error">Rate limit exceeded</div>`
+        html: `<div class="error">Rate limit exceeded</div>`,
       };
     }
     limit.count++;
   } else {
     wsxRateLimiter.set(key, { count: 1, lastReset: now });
   }
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Action completed</div>`
+    html: `<div>Action completed</div>`,
   };
 });
 ```
@@ -394,47 +411,51 @@ wsx.on("rate-limited-action", async (request, connection) => {
 ## Database Integration
 
 ### Cloudflare D1
+
 ```javascript
 // wrangler.toml
-[env.production.d1_databases]
-binding = "DB"
-database_name = "wsx-app"
-database_id = "your-database-id"
+[env.production.d1_databases];
+binding = "DB";
+database_name = "wsx-app";
+database_id = "your-database-id";
 
 // Handler with D1 database
 wsx.on("create-post", async (request, connection, env) => {
   const { title, content } = request.data;
   const userId = connection.sessionData?.user?.id;
-  
+
   if (!userId) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Authentication required</div>`
+      html: `<div class="error">Authentication required</div>`,
     };
   }
-  
+
   try {
     const result = await env.DB.prepare(
       "INSERT INTO posts (title, content, user_id, created_at) VALUES (?, ?, ?, ?)"
-    ).bind(title, content, userId, new Date().toISOString()).run();
-    
+    )
+      .bind(title, content, userId, new Date().toISOString())
+      .run();
+
     return {
       id: request.id,
       target: request.target,
-      html: `<div>Post created with ID: ${result.meta.last_row_id}</div>`
+      html: `<div>Post created with ID: ${result.meta.last_row_id}</div>`,
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Failed to create post</div>`
+      html: `<div class="error">Failed to create post</div>`,
     };
   }
 });
 ```
 
 ### Deno KV
+
 ```javascript
 // Using Deno KV for persistence
 const kv = await Deno.openKv();
@@ -442,28 +463,28 @@ const kv = await Deno.openKv();
 wsx.on("save-data", async (request, connection) => {
   const { key, value } = request.data;
   const userId = connection.sessionData?.user?.id;
-  
+
   if (!userId) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Authentication required</div>`
+      html: `<div class="error">Authentication required</div>`,
     };
   }
-  
+
   try {
     await kv.set([`user:${userId}`, key], value);
-    
+
     return {
       id: request.id,
       target: request.target,
-      html: `<div>Data saved successfully</div>`
+      html: `<div>Data saved successfully</div>`,
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Failed to save data</div>`
+      html: `<div class="error">Failed to save data</div>`,
     };
   }
 });
@@ -471,28 +492,28 @@ wsx.on("save-data", async (request, connection) => {
 wsx.on("load-data", async (request, connection) => {
   const { key } = request.data;
   const userId = connection.sessionData?.user?.id;
-  
+
   if (!userId) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Authentication required</div>`
+      html: `<div class="error">Authentication required</div>`,
     };
   }
-  
+
   try {
     const result = await kv.get([`user:${userId}`, key]);
-    
+
     return {
       id: request.id,
       target: request.target,
-      html: `<div>Data: ${JSON.stringify(result.value)}</div>`
+      html: `<div>Data: ${JSON.stringify(result.value)}</div>`,
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Failed to load data</div>`
+      html: `<div class="error">Failed to load data</div>`,
     };
   }
 });
@@ -501,6 +522,7 @@ wsx.on("load-data", async (request, connection) => {
 ## Real-Time Applications
 
 ### Live Collaboration
+
 ```javascript
 // Collaborative document editing
 const documents = new Map();
@@ -508,37 +530,41 @@ const documents = new Map();
 wsx.on("join-document", async (request, connection) => {
   const { documentId } = request.data;
   const user = connection.sessionData?.user;
-  
+
   if (!user) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Authentication required</div>`
+      html: `<div class="error">Authentication required</div>`,
     };
   }
-  
+
   // Track document participants
   if (!documents.has(documentId)) {
     documents.set(documentId, new Set());
   }
-  
+
   documents.get(documentId).add(connection.id);
   connection.sessionData.documentId = documentId;
-  
+
   // Notify other participants
   const participants = Array.from(documents.get(documentId))
-    .map(id => wsx.getConnection(id))
-    .filter(conn => conn && conn.id !== connection.id);
-  
-  participants.forEach(conn => {
-    wsx.sendToConnection(conn.id, "#participants", 
-      `<div>${user.name} joined the document</div>`, "beforeend");
+    .map((id) => wsx.getConnection(id))
+    .filter((conn) => conn && conn.id !== connection.id);
+
+  participants.forEach((conn) => {
+    wsx.sendToConnection(
+      conn.id,
+      "#participants",
+      `<div>${user.name} joined the document</div>`,
+      "beforeend"
+    );
   });
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Joined document: ${documentId}</div>`
+    html: `<div>Joined document: ${documentId}</div>`,
   };
 });
 
@@ -546,58 +572,59 @@ wsx.on("document-change", async (request, connection) => {
   const { change, position } = request.data;
   const documentId = connection.sessionData?.documentId;
   const user = connection.sessionData?.user;
-  
+
   if (!documentId || !user) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Invalid session</div>`
+      html: `<div class="error">Invalid session</div>`,
     };
   }
-  
+
   // Broadcast change to other participants
   const participants = Array.from(documents.get(documentId) || [])
-    .map(id => wsx.getConnection(id))
-    .filter(conn => conn && conn.id !== connection.id);
-  
+    .map((id) => wsx.getConnection(id))
+    .filter((conn) => conn && conn.id !== connection.id);
+
   const changeHtml = `
     <div class="document-change" data-position="${position}">
       <span class="user">${user.name}</span> made a change
     </div>
   `;
-  
-  participants.forEach(conn => {
+
+  participants.forEach((conn) => {
     wsx.sendToConnection(conn.id, "#document-changes", changeHtml, "beforeend");
   });
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Change synchronized</div>`
+    html: `<div>Change synchronized</div>`,
   };
 });
 ```
 
 ### Live Dashboard
+
 ```javascript
 // Real-time analytics dashboard
 let dashboardInterval;
 
 wsx.on("start-dashboard", async (request, connection) => {
   const user = connection.sessionData?.user;
-  
+
   if (!user?.isAdmin) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Admin access required</div>`
+      html: `<div class="error">Admin access required</div>`,
     };
   }
-  
+
   // Start sending real-time updates
   dashboardInterval = setInterval(async () => {
     const stats = await getAnalytics();
-    
+
     const dashboardHtml = `
       <div class="dashboard-stats">
         <div class="metric">
@@ -614,14 +641,14 @@ wsx.on("start-dashboard", async (request, connection) => {
         </div>
       </div>
     `;
-    
+
     wsx.sendToConnection(connection.id, "#dashboard", dashboardHtml);
   }, 1000);
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Dashboard started</div>`
+    html: `<div>Dashboard started</div>`,
   };
 });
 
@@ -635,45 +662,57 @@ wsx.onDisconnection = (connection) => {
 ## Error Handling
 
 ### Global Error Handler
+
 ```javascript
 app.onError = (err, c) => {
-  console.error('Hono error:', err);
-  
-  return c.json({
-    error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
-  }, 500);
+  console.error("Hono error:", err);
+
+  return c.json(
+    {
+      error: "Internal server error",
+      message:
+        process.env.NODE_ENV === "development"
+          ? err.message
+          : "Something went wrong",
+    },
+    500
+  );
 };
 
 // WSX error handler
 wsx.onError = (error, connection) => {
-  console.error('WSX error:', error);
-  
+  console.error("WSX error:", error);
+
   if (connection) {
-    connection.send(JSON.stringify({
-      error: 'An unexpected error occurred',
-      id: 'error'
-    }));
+    connection.send(
+      JSON.stringify({
+        error: "An unexpected error occurred",
+        id: "error",
+      })
+    );
   }
 };
 ```
 
 ### Graceful Shutdown
+
 ```javascript
 // Handle shutdown gracefully
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM, shutting down gracefully');
-  
+process.on("SIGTERM", () => {
+  console.log("Received SIGTERM, shutting down gracefully");
+
   // Close all WSX connections
   const connections = wsx.getConnections();
-  connections.forEach(conn => {
-    conn.send(JSON.stringify({
-      type: 'shutdown',
-      message: 'Server is shutting down'
-    }));
+  connections.forEach((conn) => {
+    conn.send(
+      JSON.stringify({
+        type: "shutdown",
+        message: "Server is shutting down",
+      })
+    );
     conn.close();
   });
-  
+
   process.exit(0);
 });
 ```
@@ -681,41 +720,43 @@ process.on('SIGTERM', () => {
 ## Performance Optimization
 
 ### Edge Caching
+
 ```javascript
 // Cache responses at the edge
 const cache = new Map();
 
 wsx.on("cached-data", async (request, connection) => {
   const cacheKey = `${request.handler}:${JSON.stringify(request.data)}`;
-  
+
   // Check cache first
   if (cache.has(cacheKey)) {
     const cached = cache.get(cacheKey);
     return {
       ...cached,
-      id: request.id
+      id: request.id,
     };
   }
-  
+
   // Generate response
   const data = await getExpensiveData(request.data);
   const response = {
     target: request.target,
-    html: `<div>Data: ${JSON.stringify(data)}</div>`
+    html: `<div>Data: ${JSON.stringify(data)}</div>`,
   };
-  
+
   // Cache for 5 minutes
   cache.set(cacheKey, response);
   setTimeout(() => cache.delete(cacheKey), 5 * 60 * 1000);
-  
+
   return {
     id: request.id,
-    ...response
+    ...response,
   };
 });
 ```
 
 ### Connection Pooling
+
 ```javascript
 // Efficient connection management
 class ConnectionPool {
@@ -723,7 +764,7 @@ class ConnectionPool {
     this.connections = new Map();
     this.maxConnections = maxConnections;
   }
-  
+
   addConnection(connection) {
     if (this.connections.size >= this.maxConnections) {
       // Close oldest connection
@@ -732,24 +773,24 @@ class ConnectionPool {
       oldConnection.close();
       this.connections.delete(oldest);
     }
-    
+
     this.connections.set(connection.id, {
       connection,
-      lastActivity: Date.now()
+      lastActivity: Date.now(),
     });
   }
-  
+
   updateActivity(connectionId) {
     const conn = this.connections.get(connectionId);
     if (conn) {
       conn.lastActivity = Date.now();
     }
   }
-  
+
   cleanupInactive() {
     const now = Date.now();
     const timeout = 30 * 60 * 1000; // 30 minutes
-    
+
     for (const [id, conn] of this.connections) {
       if (now - conn.lastActivity > timeout) {
         conn.connection.close();

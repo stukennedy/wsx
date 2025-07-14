@@ -10,102 +10,104 @@ This example demonstrates how to create a responsive live search interface using
 ## Basic Live Search
 
 ### HTML Setup
+
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>WSX Live Search</title>
-  <script src="/wsx.js"></script>
-  <style>
-    .search-container {
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    
-    .search-input {
-      width: 100%;
-      padding: 12px;
-      font-size: 16px;
-      border: 2px solid #ddd;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-    
-    .search-results {
-      border: 1px solid #eee;
-      border-radius: 8px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    
-    .search-item {
-      padding: 12px;
-      border-bottom: 1px solid #eee;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    
-    .search-item:hover {
-      background-color: #f5f5f5;
-    }
-    
-    .search-item:last-child {
-      border-bottom: none;
-    }
-    
-    .search-item h3 {
-      margin: 0 0 5px 0;
-      color: #333;
-    }
-    
-    .search-item p {
-      margin: 0;
-      color: #666;
-      font-size: 14px;
-    }
-    
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: #666;
-    }
-    
-    .no-results {
-      text-align: center;
-      padding: 20px;
-      color: #999;
-    }
-  </style>
-</head>
-<body>
-  <div wx-config='{"url": "ws://localhost:3000/ws"}'>
-    <div class="search-container">
-      <h1>Live Search</h1>
-      
-      <input 
-        type="text" 
-        class="search-input"
-        placeholder="Search for products, users, or content..."
-        wx-send="search"
-        wx-target="#search-results"
-        wx-trigger="keyup delay:300ms"
-        wx-include="value"
-      />
-      
-      <div id="search-results" class="search-results">
-        <div class="no-results">Start typing to search...</div>
+  <head>
+    <title>WSX Live Search</title>
+    <script src="/wsx.js"></script>
+    <style>
+      .search-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .search-input {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .search-results {
+        border: 1px solid #eee;
+        border-radius: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .search-item {
+        padding: 12px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .search-item:hover {
+        background-color: #f5f5f5;
+      }
+
+      .search-item:last-child {
+        border-bottom: none;
+      }
+
+      .search-item h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+      }
+
+      .search-item p {
+        margin: 0;
+        color: #666;
+        font-size: 14px;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
+
+      .no-results {
+        text-align: center;
+        padding: 20px;
+        color: #999;
+      }
+    </style>
+  </head>
+  <body>
+    <div wx-config='{"url": "ws://localhost:3000/ws"}'>
+      <div class="search-container">
+        <h1>Live Search</h1>
+
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search for products, users, or content..."
+          wx-send="search"
+          wx-target="#search-results"
+          wx-trigger="keyup delay:300ms"
+          wx-include="value"
+        />
+
+        <div id="search-results" class="search-results">
+          <div class="no-results">Start typing to search...</div>
+        </div>
       </div>
     </div>
-  </div>
-</body>
+  </body>
 </html>
 ```
 
 ### Server Implementation
+
 ```javascript
-import { createExpressWSXServer } from "@wsx/express";
-import { html } from '@wsx/core';
+import { createExpressWSXServer } from "@wsx-sh/express";
+import { html } from "@wsx-sh/core";
 import express from "express";
 
 const wsx = createExpressWSXServer();
@@ -113,77 +115,142 @@ const app = wsx.getApp();
 
 // Mock data for demonstration
 const mockData = [
-  { id: 1, title: "MacBook Pro", description: "Apple laptop computer", category: "Electronics", price: 1299 },
-  { id: 2, title: "iPhone 15", description: "Latest iPhone model", category: "Electronics", price: 999 },
-  { id: 3, title: "Nike Air Max", description: "Running shoes", category: "Footwear", price: 120 },
-  { id: 4, title: "Samsung Galaxy S24", description: "Android smartphone", category: "Electronics", price: 799 },
-  { id: 5, title: "Adidas Ultraboost", description: "Premium running shoes", category: "Footwear", price: 180 },
-  { id: 6, title: "iPad Pro", description: "Apple tablet", category: "Electronics", price: 799 },
-  { id: 7, title: "Sony WH-1000XM4", description: "Noise-cancelling headphones", category: "Audio", price: 299 },
-  { id: 8, title: "Dell XPS 13", description: "Windows laptop", category: "Electronics", price: 999 },
-  { id: 9, title: "AirPods Pro", description: "Apple wireless earbuds", category: "Audio", price: 249 },
-  { id: 10, title: "Levi's 501 Jeans", description: "Classic denim jeans", category: "Clothing", price: 69 }
+  {
+    id: 1,
+    title: "MacBook Pro",
+    description: "Apple laptop computer",
+    category: "Electronics",
+    price: 1299,
+  },
+  {
+    id: 2,
+    title: "iPhone 15",
+    description: "Latest iPhone model",
+    category: "Electronics",
+    price: 999,
+  },
+  {
+    id: 3,
+    title: "Nike Air Max",
+    description: "Running shoes",
+    category: "Footwear",
+    price: 120,
+  },
+  {
+    id: 4,
+    title: "Samsung Galaxy S24",
+    description: "Android smartphone",
+    category: "Electronics",
+    price: 799,
+  },
+  {
+    id: 5,
+    title: "Adidas Ultraboost",
+    description: "Premium running shoes",
+    category: "Footwear",
+    price: 180,
+  },
+  {
+    id: 6,
+    title: "iPad Pro",
+    description: "Apple tablet",
+    category: "Electronics",
+    price: 799,
+  },
+  {
+    id: 7,
+    title: "Sony WH-1000XM4",
+    description: "Noise-cancelling headphones",
+    category: "Audio",
+    price: 299,
+  },
+  {
+    id: 8,
+    title: "Dell XPS 13",
+    description: "Windows laptop",
+    category: "Electronics",
+    price: 999,
+  },
+  {
+    id: 9,
+    title: "AirPods Pro",
+    description: "Apple wireless earbuds",
+    category: "Audio",
+    price: 249,
+  },
+  {
+    id: 10,
+    title: "Levi's 501 Jeans",
+    description: "Classic denim jeans",
+    category: "Clothing",
+    price: 69,
+  },
 ];
 
 // Live search handler
 wsx.on("search", async (request, connection) => {
   const query = request.data.value?.toLowerCase() || "";
-  
+
   // Simulate slight delay for realistic feel
-  await new Promise(resolve => setTimeout(resolve, 100));
-  
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   if (!query.trim()) {
     return {
       id: request.id,
       target: request.target,
-      html: html`<div class="no-results">Start typing to search...</div>`
+      html: html`<div class="no-results">Start typing to search...</div>`,
     };
   }
-  
+
   // Filter data based on search query
-  const results = mockData.filter(item => 
-    item.title.toLowerCase().includes(query) ||
-    item.description.toLowerCase().includes(query) ||
-    item.category.toLowerCase().includes(query)
+  const results = mockData.filter(
+    (item) =>
+      item.title.toLowerCase().includes(query) ||
+      item.description.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query)
   );
-  
+
   if (results.length === 0) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="no-results">No results found for "${query}"</div>`
+      html: `<div class="no-results">No results found for "${query}"</div>`,
     };
   }
-  
+
   // Generate HTML for results
-  const resultsHtml = results.map(item => `
+  const resultsHtml = results
+    .map(
+      (item) => `
     <div class="search-item" wx-send="select-item" data-item-id="${item.id}">
       <h3>${highlightQuery(item.title, query)}</h3>
       <p>${highlightQuery(item.description, query)}</p>
       <p><strong>$${item.price}</strong> • ${item.category}</p>
     </div>
-  `).join('');
-  
+  `
+    )
+    .join("");
+
   return {
     id: request.id,
     target: request.target,
-    html: resultsHtml
+    html: resultsHtml,
   };
 });
 
 // Helper function to highlight search terms
 function highlightQuery(text, query) {
   if (!query) return text;
-  
-  const regex = new RegExp(`(${query})`, 'gi');
-  return text.replace(regex, '<mark>$1</mark>');
+
+  const regex = new RegExp(`(${query})`, "gi");
+  return text.replace(regex, "<mark>$1</mark>");
 }
 
 // Handle item selection
 wsx.on("select-item", async (request, connection) => {
   const itemId = parseInt(request.data.itemId);
-  const item = mockData.find(i => i.id === itemId);
-  
+  const item = mockData.find((i) => i.id === itemId);
+
   if (item) {
     return {
       id: request.id,
@@ -195,135 +262,143 @@ wsx.on("select-item", async (request, connection) => {
           <p><strong>$${item.price}</strong> • ${item.category}</p>
           <p style="color: #4caf50; font-weight: bold;">✓ Selected</p>
         </div>
-      `
+      `,
     };
   }
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div class="no-results">Item not found</div>`
+    html: `<div class="no-results">Item not found</div>`,
   };
 });
 
-app.use(express.static('public'));
+app.use(express.static("public"));
 app.listen(3000, () => {
-  console.log('Server running on http://localhost:3000');
+  console.log("Server running on http://localhost:3000");
 });
 ```
 
 ## Advanced Live Search with Database
 
 ### Database Setup
+
 ```javascript
 // models/Product.js
-import { DataTypes } from 'sequelize';
-import sequelize from '../config/database.js';
+import { DataTypes } from "sequelize";
+import sequelize from "../config/database.js";
 
-const Product = sequelize.define('Product', {
+const Product = sequelize.define("Product", {
   title: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
   },
   description: {
     type: DataTypes.TEXT,
-    allowNull: true
+    allowNull: true,
   },
   category: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: false,
   },
   price: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
   },
   tags: {
     type: DataTypes.JSON,
-    allowNull: true
+    allowNull: true,
   },
   inStock: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true
-  }
+    defaultValue: true,
+  },
 });
 
 export default Product;
 ```
 
 ### Advanced Search Handler
+
 ```javascript
-import { Op } from 'sequelize';
-import Product from './models/Product.js';
+import { Op } from "sequelize";
+import Product from "./models/Product.js";
 
 // Advanced search with filters
 wsx.on("advanced-search", async (request, connection) => {
   const { query, category, minPrice, maxPrice, inStock } = request.data;
-  
+
   // Build search conditions
   const whereConditions = {};
-  
+
   if (query) {
     whereConditions[Op.or] = [
       { title: { [Op.iLike]: `%${query}%` } },
       { description: { [Op.iLike]: `%${query}%` } },
-      { tags: { [Op.contains]: [query] } }
+      { tags: { [Op.contains]: [query] } },
     ];
   }
-  
+
   if (category) {
     whereConditions.category = category;
   }
-  
+
   if (minPrice || maxPrice) {
     whereConditions.price = {};
     if (minPrice) whereConditions.price[Op.gte] = minPrice;
     if (maxPrice) whereConditions.price[Op.lte] = maxPrice;
   }
-  
+
   if (inStock !== undefined) {
     whereConditions.inStock = inStock;
   }
-  
+
   try {
     const products = await Product.findAll({
       where: whereConditions,
       limit: 20,
-      order: [['title', 'ASC']]
+      order: [["title", "ASC"]],
     });
-    
+
     if (products.length === 0) {
       return {
         id: request.id,
         target: request.target,
-        html: `<div class="no-results">No products found matching your criteria</div>`
+        html: `<div class="no-results">No products found matching your criteria</div>`,
       };
     }
-    
-    const resultsHtml = products.map(product => `
-      <div class="search-item" wx-send="view-product" data-product-id="${product.id}">
+
+    const resultsHtml = products
+      .map(
+        (product) => `
+      <div class="search-item" wx-send="view-product" data-product-id="${
+        product.id
+      }">
         <h3>${highlightQuery(product.title, query)}</h3>
         <p>${highlightQuery(product.description, query)}</p>
         <div class="product-meta">
           <span class="price">$${product.price}</span>
           <span class="category">${product.category}</span>
-          <span class="stock ${product.inStock ? 'in-stock' : 'out-of-stock'}">
-            ${product.inStock ? 'In Stock' : 'Out of Stock'}
+          <span class="stock ${product.inStock ? "in-stock" : "out-of-stock"}">
+            ${product.inStock ? "In Stock" : "Out of Stock"}
           </span>
         </div>
       </div>
-    `).join('');
-    
+    `
+      )
+      .join("");
+
     return {
       id: request.id,
       target: request.target,
-      html: resultsHtml
+      html: resultsHtml,
     };
   } catch (error) {
-    console.error('Search error:', error);
+    console.error("Search error:", error);
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Search failed. Please try again.</div>`
+      html: `<div class="error">Search failed. Please try again.</div>`,
     };
   }
 });
@@ -332,10 +407,11 @@ wsx.on("advanced-search", async (request, connection) => {
 ## Search with Autocomplete
 
 ### Autocomplete HTML
+
 ```html
 <div class="autocomplete-container">
-  <input 
-    type="text" 
+  <input
+    type="text"
     class="search-input"
     placeholder="Search..."
     wx-send="autocomplete"
@@ -344,106 +420,119 @@ wsx.on("advanced-search", async (request, connection) => {
     wx-include="value"
     autocomplete="off"
   />
-  
+
   <div id="autocomplete-results" class="autocomplete-results"></div>
 </div>
 
 <style>
-.autocomplete-container {
-  position: relative;
-}
+  .autocomplete-container {
+    position: relative;
+  }
 
-.autocomplete-results {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #ddd;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 1000;
-}
+  .autocomplete-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+  }
 
-.autocomplete-item {
-  padding: 10px;
-  cursor: pointer;
-  border-bottom: 1px solid #eee;
-}
+  .autocomplete-item {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+  }
 
-.autocomplete-item:hover {
-  background-color: #f5f5f5;
-}
+  .autocomplete-item:hover {
+    background-color: #f5f5f5;
+  }
 
-.autocomplete-item:last-child {
-  border-bottom: none;
-}
+  .autocomplete-item:last-child {
+    border-bottom: none;
+  }
 
-.suggestion-text {
-  font-weight: bold;
-}
+  .suggestion-text {
+    font-weight: bold;
+  }
 
-.suggestion-category {
-  color: #666;
-  font-size: 12px;
-}
+  .suggestion-category {
+    color: #666;
+    font-size: 12px;
+  }
 </style>
 ```
 
 ### Autocomplete Handler
+
 ```javascript
 wsx.on("autocomplete", async (request, connection) => {
   const query = request.data.value?.toLowerCase() || "";
-  
+
   if (!query.trim() || query.length < 2) {
     return {
       id: request.id,
       target: request.target,
-      html: ""
+      html: "",
     };
   }
-  
+
   try {
     // Get suggestions from multiple sources
     const [productSuggestions, categorySuggestions] = await Promise.all([
       getProductSuggestions(query),
-      getCategorySuggestions(query)
+      getCategorySuggestions(query),
     ]);
-    
+
     const suggestions = [
-      ...productSuggestions.map(p => ({ type: 'product', ...p })),
-      ...categorySuggestions.map(c => ({ type: 'category', ...c }))
+      ...productSuggestions.map((p) => ({ type: "product", ...p })),
+      ...categorySuggestions.map((c) => ({ type: "category", ...c })),
     ];
-    
+
     if (suggestions.length === 0) {
       return {
         id: request.id,
         target: request.target,
-        html: ""
+        html: "",
       };
     }
-    
-    const suggestionsHtml = suggestions.slice(0, 10).map(suggestion => `
-      <div class="autocomplete-item" wx-send="select-suggestion" data-suggestion='${JSON.stringify(suggestion)}'>
-        <div class="suggestion-text">${highlightQuery(suggestion.title, query)}</div>
-        <div class="suggestion-category">${suggestion.type === 'product' ? 'Product' : 'Category'}</div>
+
+    const suggestionsHtml = suggestions
+      .slice(0, 10)
+      .map(
+        (suggestion) => `
+      <div class="autocomplete-item" wx-send="select-suggestion" data-suggestion='${JSON.stringify(
+        suggestion
+      )}'>
+        <div class="suggestion-text">${highlightQuery(
+          suggestion.title,
+          query
+        )}</div>
+        <div class="suggestion-category">${
+          suggestion.type === "product" ? "Product" : "Category"
+        }</div>
       </div>
-    `).join('');
-    
+    `
+      )
+      .join("");
+
     return {
       id: request.id,
       target: request.target,
-      html: suggestionsHtml
+      html: suggestionsHtml,
     };
   } catch (error) {
-    console.error('Autocomplete error:', error);
+    console.error("Autocomplete error:", error);
     return {
       id: request.id,
       target: request.target,
-      html: ""
+      html: "",
     };
   }
 });
@@ -453,27 +542,27 @@ async function getProductSuggestions(query) {
     where: {
       [Op.or]: [
         { title: { [Op.iLike]: `%${query}%` } },
-        { description: { [Op.iLike]: `%${query}%` } }
-      ]
+        { description: { [Op.iLike]: `%${query}%` } },
+      ],
     },
     limit: 6,
-    order: [['title', 'ASC']]
+    order: [["title", "ASC"]],
   });
 }
 
 async function getCategorySuggestions(query) {
   const categories = await Product.findAll({
-    attributes: ['category'],
+    attributes: ["category"],
     where: {
-      category: { [Op.iLike]: `%${query}%` }
+      category: { [Op.iLike]: `%${query}%` },
     },
-    group: ['category'],
-    limit: 4
+    group: ["category"],
+    limit: 4,
   });
-  
-  return categories.map(cat => ({
+
+  return categories.map((cat) => ({
     title: cat.category,
-    description: `Browse ${cat.category} products`
+    description: `Browse ${cat.category} products`,
   }));
 }
 ```
@@ -481,11 +570,16 @@ async function getCategorySuggestions(query) {
 ## Search with Filters
 
 ### Filter Interface
+
 ```html
 <div class="search-filters">
   <div class="filter-group">
     <label>Category:</label>
-    <select wx-send="filter-search" wx-target="#search-results" wx-trigger="change">
+    <select
+      wx-send="filter-search"
+      wx-target="#search-results"
+      wx-trigger="change"
+    >
       <option value="">All Categories</option>
       <option value="Electronics">Electronics</option>
       <option value="Clothing">Clothing</option>
@@ -493,18 +587,30 @@ async function getCategorySuggestions(query) {
       <option value="Home">Home</option>
     </select>
   </div>
-  
+
   <div class="filter-group">
     <label>Price Range:</label>
-    <input type="range" min="0" max="1000" step="50" 
-           wx-send="filter-search" wx-target="#search-results" wx-trigger="change input delay:500ms"
-           wx-include="value" />
+    <input
+      type="range"
+      min="0"
+      max="1000"
+      step="50"
+      wx-send="filter-search"
+      wx-target="#search-results"
+      wx-trigger="change input delay:500ms"
+      wx-include="value"
+    />
     <span id="price-display">$0 - $1000</span>
   </div>
-  
+
   <div class="filter-group">
     <label>
-      <input type="checkbox" wx-send="filter-search" wx-target="#search-results" wx-trigger="change" />
+      <input
+        type="checkbox"
+        wx-send="filter-search"
+        wx-target="#search-results"
+        wx-trigger="change"
+      />
       In Stock Only
     </label>
   </div>
@@ -512,70 +618,77 @@ async function getCategorySuggestions(query) {
 ```
 
 ### Filter Handler
+
 ```javascript
 wsx.on("filter-search", async (request, connection) => {
   const formData = request.data;
-  
+
   // Extract filter values
-  const category = formData.category || '';
+  const category = formData.category || "";
   const maxPrice = formData.priceRange || 1000;
-  const inStockOnly = formData.inStockOnly === 'on';
-  const searchQuery = connection.sessionData?.lastSearchQuery || '';
-  
+  const inStockOnly = formData.inStockOnly === "on";
+  const searchQuery = connection.sessionData?.lastSearchQuery || "";
+
   // Build filter conditions
   const conditions = {};
-  
+
   if (searchQuery) {
     conditions[Op.or] = [
       { title: { [Op.iLike]: `%${searchQuery}%` } },
-      { description: { [Op.iLike]: `%${searchQuery}%` } }
+      { description: { [Op.iLike]: `%${searchQuery}%` } },
     ];
   }
-  
+
   if (category) {
     conditions.category = category;
   }
-  
+
   if (maxPrice < 1000) {
     conditions.price = { [Op.lte]: maxPrice };
   }
-  
+
   if (inStockOnly) {
     conditions.inStock = true;
   }
-  
+
   try {
     const products = await Product.findAll({
       where: conditions,
       limit: 20,
-      order: [['title', 'ASC']]
+      order: [["title", "ASC"]],
     });
-    
-    const resultsHtml = products.map(product => `
+
+    const resultsHtml = products
+      .map(
+        (product) => `
       <div class="search-item">
         <h3>${product.title}</h3>
         <p>${product.description}</p>
         <div class="product-meta">
           <span class="price">$${product.price}</span>
           <span class="category">${product.category}</span>
-          <span class="stock ${product.inStock ? 'in-stock' : 'out-of-stock'}">
-            ${product.inStock ? 'In Stock' : 'Out of Stock'}
+          <span class="stock ${product.inStock ? "in-stock" : "out-of-stock"}">
+            ${product.inStock ? "In Stock" : "Out of Stock"}
           </span>
         </div>
       </div>
-    `).join('');
-    
+    `
+      )
+      .join("");
+
     return {
       id: request.id,
       target: request.target,
-      html: resultsHtml || `<div class="no-results">No products match your filters</div>`
+      html:
+        resultsHtml ||
+        `<div class="no-results">No products match your filters</div>`,
     };
   } catch (error) {
-    console.error('Filter search error:', error);
+    console.error("Filter search error:", error);
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Filter search failed</div>`
+      html: `<div class="error">Filter search failed</div>`,
     };
   }
 });
@@ -584,35 +697,36 @@ wsx.on("filter-search", async (request, connection) => {
 ## Search Analytics
 
 ### Analytics Tracking
+
 ```javascript
 // Track search analytics
 const searchAnalytics = {
   searches: new Map(),
   popularQueries: new Map(),
-  noResultsQueries: new Map()
+  noResultsQueries: new Map(),
 };
 
 wsx.on("search", async (request, connection) => {
   const query = request.data.value?.toLowerCase() || "";
   const sessionId = connection.sessionData?.sessionId || connection.id;
-  
+
   if (query.trim()) {
     // Track search
     recordSearch(sessionId, query);
-    
+
     // Update popular queries
     const count = searchAnalytics.popularQueries.get(query) || 0;
     searchAnalytics.popularQueries.set(query, count + 1);
   }
-  
+
   // ... existing search logic ...
-  
+
   // Track no results
   if (results.length === 0 && query.trim()) {
     const count = searchAnalytics.noResultsQueries.get(query) || 0;
     searchAnalytics.noResultsQueries.set(query, count + 1);
   }
-  
+
   // ... return response ...
 });
 
@@ -620,56 +734,66 @@ function recordSearch(sessionId, query) {
   if (!searchAnalytics.searches.has(sessionId)) {
     searchAnalytics.searches.set(sessionId, []);
   }
-  
+
   searchAnalytics.searches.get(sessionId).push({
     query,
     timestamp: new Date(),
-    results: results.length
+    results: results.length,
   });
 }
 
 // Analytics endpoint
 wsx.on("get-search-analytics", async (request, connection) => {
   const user = connection.sessionData?.user;
-  
+
   if (!user?.isAdmin) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Admin access required</div>`
+      html: `<div class="error">Admin access required</div>`,
     };
   }
-  
+
   const popularQueries = Array.from(searchAnalytics.popularQueries.entries())
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
-  
-  const noResultsQueries = Array.from(searchAnalytics.noResultsQueries.entries())
-    .sort(([,a], [,b]) => b - a)
+
+  const noResultsQueries = Array.from(
+    searchAnalytics.noResultsQueries.entries()
+  )
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
-  
+
   const analyticsHtml = `
     <div class="analytics-dashboard">
       <h3>Popular Search Queries</h3>
       <ul>
-        ${popularQueries.map(([query, count]) => `
+        ${popularQueries
+          .map(
+            ([query, count]) => `
           <li>${query} (${count} searches)</li>
-        `).join('')}
+        `
+          )
+          .join("")}
       </ul>
       
       <h3>Queries with No Results</h3>
       <ul>
-        ${noResultsQueries.map(([query, count]) => `
+        ${noResultsQueries
+          .map(
+            ([query, count]) => `
           <li>${query} (${count} times)</li>
-        `).join('')}
+        `
+          )
+          .join("")}
       </ul>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: analyticsHtml
+    html: analyticsHtml,
   };
 });
 ```
@@ -677,6 +801,7 @@ wsx.on("get-search-analytics", async (request, connection) => {
 ## Performance Optimizations
 
 ### Debouncing and Caching
+
 ```javascript
 // In-memory cache for search results
 const searchCache = new Map();
@@ -684,41 +809,41 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 wsx.on("search", async (request, connection) => {
   const query = request.data.value?.toLowerCase() || "";
-  
+
   if (!query.trim()) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="no-results">Start typing to search...</div>`
+      html: `<div class="no-results">Start typing to search...</div>`,
     };
   }
-  
+
   // Check cache first
   const cacheKey = `search:${query}`;
   const cached = searchCache.get(cacheKey);
-  
+
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return {
       id: request.id,
       target: request.target,
-      html: cached.html
+      html: cached.html,
     };
   }
-  
+
   // Perform search
   const results = await performSearch(query);
   const html = generateResultsHTML(results, query);
-  
+
   // Cache results
   searchCache.set(cacheKey, {
     html,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
-  
+
   return {
     id: request.id,
     target: request.target,
-    html
+    html,
   };
 });
 

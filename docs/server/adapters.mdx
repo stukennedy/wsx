@@ -10,26 +10,27 @@ Server adapters provide the interface between WSX and different web frameworks. 
 ## Built-in Adapters
 
 ### Express Adapter
+
 ```javascript
-import { createExpressWSXServer } from "@wsx/express";
+import { createExpressWSXServer } from "@wsx-sh/express";
 
 const wsx = createExpressWSXServer({
-  path: '/ws',
-  maxConnections: 1000
+  path: "/ws",
+  maxConnections: 1000,
 });
 
 const app = wsx.getApp();
 
 // Add Express middleware
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static("public"));
 
 // Add WSX handlers
 wsx.on("test-action", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Hello from Express!</div>`
+    html: `<div>Hello from Express!</div>`,
   };
 });
 
@@ -37,17 +38,18 @@ app.listen(3000);
 ```
 
 ### Hono Adapter
+
 ```javascript
-import { createHonoWSXServer } from "@wsx/hono";
+import { createHonoWSXServer } from "@wsx-sh/hono";
 
 const wsx = createHonoWSXServer({
-  path: '/ws'
+  path: "/ws",
 });
 
 const app = wsx.getApp();
 
 // Add Hono middleware
-app.use('*', async (c, next) => {
+app.use("*", async (c, next) => {
   console.log(`${c.req.method} ${c.req.url}`);
   await next();
 });
@@ -57,7 +59,7 @@ wsx.on("test-action", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Hello from Hono!</div>`
+    html: `<div>Hello from Hono!</div>`,
   };
 });
 
@@ -67,6 +69,7 @@ export default app;
 ## Adapter Interface
 
 ### WSXServerAdapter Interface
+
 ```typescript
 interface WSXServerAdapter {
   // Setup WebSocket handling
@@ -74,32 +77,34 @@ interface WSXServerAdapter {
     path: string,
     onMessage: (data: string, connection: WSXConnection) => void
   ): void;
-  
+
   // Optional connection lifecycle hooks
   onConnection?(connection: WSXConnection): void;
   onDisconnection?(connection: WSXConnection): void;
-  
+
   // Get the underlying framework app
   getApp(): any;
 }
 ```
 
 ### WSXConnection Interface
+
 ```typescript
 interface WSXConnection {
-  id: string;                    // Unique connection identifier
+  id: string; // Unique connection identifier
   sessionData?: Record<string, any>; // Session storage
-  send(data: string): void;      // Send data to client
-  close(): void;                 // Close connection
+  send(data: string): void; // Send data to client
+  close(): void; // Close connection
 }
 ```
 
 ## Creating Custom Adapters
 
 ### Basic Adapter Structure
+
 ```javascript
-import { WSXServer } from "@wsx/core";
-import { v4 as uuidv4 } from 'uuid';
+import { WSXServer } from "@wsx-sh/core";
+import { v4 as uuidv4 } from "uuid";
 
 class CustomFrameworkAdapter {
   constructor(frameworkApp, options = {}) {
@@ -115,16 +120,16 @@ class CustomFrameworkAdapter {
       this.connections.set(connection.id, connection);
 
       // Handle incoming messages
-      ws.on('message', (data) => {
+      ws.on("message", (data) => {
         try {
           onMessage(data.toString(), connection);
         } catch (error) {
-          console.error('Message handling error:', error);
+          console.error("Message handling error:", error);
         }
       });
 
       // Handle connection close
-      ws.on('close', () => {
+      ws.on("close", () => {
         this.connections.delete(connection.id);
         if (this.onDisconnection) {
           this.onDisconnection(connection);
@@ -132,8 +137,8 @@ class CustomFrameworkAdapter {
       });
 
       // Handle errors
-      ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+      ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
         this.connections.delete(connection.id);
       });
 
@@ -158,7 +163,7 @@ class CustomFrameworkAdapter {
       },
       // Additional connection properties
       request: req,
-      ip: req.ip || req.connection.remoteAddress
+      ip: req.ip || req.connection.remoteAddress,
     };
   }
 
@@ -183,15 +188,16 @@ function createCustomWSXServer(frameworkApp, options) {
 ```
 
 ### Fastify Adapter Example
+
 ```javascript
-import fastifyWebSocket from '@fastify/websocket';
+import fastifyWebSocket from "@fastify/websocket";
 
 class FastifyAdapter {
   constructor(fastifyInstance, options = {}) {
     this.fastify = fastifyInstance;
     this.options = options;
     this.connections = new Map();
-    
+
     // Register WebSocket plugin
     this.fastify.register(fastifyWebSocket);
   }
@@ -202,15 +208,15 @@ class FastifyAdapter {
         const wsConnection = this.createConnection(connection.socket, req);
         this.connections.set(wsConnection.id, wsConnection);
 
-        connection.socket.on('message', (message) => {
+        connection.socket.on("message", (message) => {
           try {
             onMessage(message.toString(), wsConnection);
           } catch (error) {
-            console.error('Message handling error:', error);
+            console.error("Message handling error:", error);
           }
         });
 
-        connection.socket.on('close', () => {
+        connection.socket.on("close", () => {
           this.connections.delete(wsConnection.id);
           if (this.onDisconnection) {
             this.onDisconnection(wsConnection);
@@ -237,7 +243,7 @@ class FastifyAdapter {
         socket.close();
       },
       request: req,
-      ip: req.ip
+      ip: req.ip,
     };
   }
 
@@ -248,45 +254,46 @@ class FastifyAdapter {
 
 // Usage
 async function createFastifyWSXServer(options = {}) {
-  const fastify = require('fastify')({ logger: true });
+  const fastify = require("fastify")({ logger: true });
   const adapter = new FastifyAdapter(fastify, options);
   const wsx = new WSXServer(adapter);
-  
+
   return { wsx, fastify };
 }
 ```
 
 ### Next.js Adapter Example
+
 ```javascript
-import { Server } from 'socket.io';
+import { Server } from "socket.io";
 
 class NextJSAdapter {
   constructor(server, options = {}) {
     this.io = new Server(server, {
-      path: options.path || '/api/ws',
+      path: options.path || "/api/ws",
       cors: options.cors || {
-        origin: '*',
-        methods: ['GET', 'POST']
-      }
+        origin: "*",
+        methods: ["GET", "POST"],
+      },
     });
     this.connections = new Map();
   }
 
   setupWebSocket(path, onMessage) {
-    this.io.on('connection', (socket) => {
+    this.io.on("connection", (socket) => {
       const connection = this.createConnection(socket);
       this.connections.set(connection.id, connection);
 
       // Handle WSX messages
-      socket.on('wsx-message', (data) => {
+      socket.on("wsx-message", (data) => {
         try {
           onMessage(JSON.stringify(data), connection);
         } catch (error) {
-          console.error('Message handling error:', error);
+          console.error("Message handling error:", error);
         }
       });
 
-      socket.on('disconnect', () => {
+      socket.on("disconnect", () => {
         this.connections.delete(connection.id);
         if (this.onDisconnection) {
           this.onDisconnection(connection);
@@ -304,12 +311,12 @@ class NextJSAdapter {
       id: socket.id,
       sessionData: {},
       send: (data) => {
-        socket.emit('wsx-response', JSON.parse(data));
+        socket.emit("wsx-response", JSON.parse(data));
       },
       close: () => {
         socket.disconnect();
       },
-      socket: socket
+      socket: socket,
     };
   }
 
@@ -322,6 +329,7 @@ class NextJSAdapter {
 ## Adapter Features
 
 ### Authentication Integration
+
 ```javascript
 class AuthenticatedAdapter {
   constructor(app, options = {}) {
@@ -334,22 +342,22 @@ class AuthenticatedAdapter {
     this.app.ws(path, (ws, req) => {
       // Authenticate connection
       const token = this.extractToken(req);
-      
+
       if (!token || !this.validateToken(token)) {
-        ws.close(1008, 'Authentication required');
+        ws.close(1008, "Authentication required");
         return;
       }
 
       const user = this.getUserFromToken(token);
       const connection = this.createConnection(ws, req, user);
-      
+
       this.connections.set(connection.id, connection);
 
-      ws.on('message', (data) => {
+      ws.on("message", (data) => {
         onMessage(data.toString(), connection);
       });
 
-      ws.on('close', () => {
+      ws.on("close", () => {
         this.connections.delete(connection.id);
       });
     });
@@ -357,8 +365,8 @@ class AuthenticatedAdapter {
 
   extractToken(req) {
     const authHeader = req.headers.authorization;
-    return authHeader?.startsWith('Bearer ') 
-      ? authHeader.slice(7) 
+    return authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
       : req.query.token;
   }
 
@@ -384,7 +392,7 @@ class AuthenticatedAdapter {
       send: (data) => ws.send(data),
       close: () => ws.close(),
       user: user,
-      authenticated: true
+      authenticated: true,
     };
   }
 
@@ -395,6 +403,7 @@ class AuthenticatedAdapter {
 ```
 
 ### Rate Limiting Integration
+
 ```javascript
 class RateLimitedAdapter {
   constructor(app, options = {}) {
@@ -402,7 +411,7 @@ class RateLimitedAdapter {
     this.options = options;
     this.connections = new Map();
     this.rateLimits = new Map(); // IP -> { count, lastReset }
-    
+
     this.maxRequests = options.maxRequests || 100;
     this.windowMs = options.windowMs || 60000; // 1 minute
   }
@@ -412,18 +421,20 @@ class RateLimitedAdapter {
       const connection = this.createConnection(ws, req);
       this.connections.set(connection.id, connection);
 
-      ws.on('message', (data) => {
+      ws.on("message", (data) => {
         if (!this.checkRateLimit(connection.ip)) {
-          ws.send(JSON.stringify({
-            error: 'Rate limit exceeded'
-          }));
+          ws.send(
+            JSON.stringify({
+              error: "Rate limit exceeded",
+            })
+          );
           return;
         }
 
         onMessage(data.toString(), connection);
       });
 
-      ws.on('close', () => {
+      ws.on("close", () => {
         this.connections.delete(connection.id);
       });
     });
@@ -451,7 +462,7 @@ class RateLimitedAdapter {
       sessionData: {},
       send: (data) => ws.send(data),
       close: () => ws.close(),
-      ip: req.ip || req.connection.remoteAddress
+      ip: req.ip || req.connection.remoteAddress,
     };
   }
 
@@ -462,6 +473,7 @@ class RateLimitedAdapter {
 ```
 
 ### Compression Support
+
 ```javascript
 class CompressedAdapter {
   constructor(app, options = {}) {
@@ -472,25 +484,29 @@ class CompressedAdapter {
   }
 
   setupWebSocket(path, onMessage) {
-    this.app.ws(path, {
-      perMessageDeflate: {
-        threshold: this.compressionThreshold,
-        concurrencyLimit: 10,
-        windowBits: 13,
-        memLevel: 7
+    this.app.ws(
+      path,
+      {
+        perMessageDeflate: {
+          threshold: this.compressionThreshold,
+          concurrencyLimit: 10,
+          windowBits: 13,
+          memLevel: 7,
+        },
+      },
+      (ws, req) => {
+        const connection = this.createConnection(ws, req);
+        this.connections.set(connection.id, connection);
+
+        ws.on("message", (data) => {
+          onMessage(data.toString(), connection);
+        });
+
+        ws.on("close", () => {
+          this.connections.delete(connection.id);
+        });
       }
-    }, (ws, req) => {
-      const connection = this.createConnection(ws, req);
-      this.connections.set(connection.id, connection);
-
-      ws.on('message', (data) => {
-        onMessage(data.toString(), connection);
-      });
-
-      ws.on('close', () => {
-        this.connections.delete(connection.id);
-      });
-    });
+    );
   }
 
   createConnection(ws, req) {
@@ -501,7 +517,7 @@ class CompressedAdapter {
         // Automatic compression based on size
         ws.send(data);
       },
-      close: () => ws.close()
+      close: () => ws.close(),
     };
   }
 
@@ -514,8 +530,9 @@ class CompressedAdapter {
 ## Testing Adapters
 
 ### Adapter Testing Framework
+
 ```javascript
-import { jest } from '@jest/globals';
+import { jest } from "@jest/globals";
 
 class MockWebSocket {
   constructor() {
@@ -536,12 +553,12 @@ class MockWebSocket {
 
   close() {
     this.readyState = 3; // CLOSED
-    this.emit('close');
+    this.emit("close");
   }
 
   emit(event, ...args) {
     if (this.listeners[event]) {
-      this.listeners[event].forEach(listener => {
+      this.listeners[event].forEach((listener) => {
         listener(...args);
       });
     }
@@ -561,10 +578,10 @@ class TestAdapter {
 
   simulateConnection() {
     const connection = {
-      id: 'test-connection',
+      id: "test-connection",
       sessionData: {},
       send: jest.fn(),
-      close: jest.fn()
+      close: jest.fn(),
     };
 
     this.connections.set(connection.id, connection);
@@ -579,13 +596,13 @@ class TestAdapter {
 
   getApp() {
     return {
-      ws: jest.fn()
+      ws: jest.fn(),
     };
   }
 }
 
 // Test usage
-describe('WSX Adapter', () => {
+describe("WSX Adapter", () => {
   let adapter;
   let wsx;
 
@@ -594,23 +611,26 @@ describe('WSX Adapter', () => {
     wsx = new WSXServer(adapter);
   });
 
-  test('should handle messages', async () => {
+  test("should handle messages", async () => {
     const connection = adapter.simulateConnection();
-    
-    wsx.on('test-action', async (request, conn) => {
+
+    wsx.on("test-action", async (request, conn) => {
       return {
         id: request.id,
         target: request.target,
-        html: '<div>Test response</div>'
+        html: "<div>Test response</div>",
       };
     });
 
-    adapter.simulateMessage({
-      id: 'test-id',
-      handler: 'test-action',
-      target: '#test',
-      data: {}
-    }, connection);
+    adapter.simulateMessage(
+      {
+        id: "test-id",
+        handler: "test-action",
+        target: "#test",
+        data: {},
+      },
+      connection
+    );
 
     expect(connection.send).toHaveBeenCalled();
   });
@@ -630,21 +650,25 @@ describe('WSX Adapter', () => {
 ## Framework-Specific Considerations
 
 ### Express
+
 - Use `express-ws` or similar WebSocket middleware
 - Integrate with Express middleware stack
 - Handle HTTP upgrade requests properly
 
 ### Hono
+
 - Use Hono's WebSocket support
 - Consider edge runtime compatibility
 - Optimize for serverless deployment
 
 ### Fastify
+
 - Use `@fastify/websocket` plugin
 - Leverage Fastify's plugin system
 - Maintain Fastify's performance characteristics
 
 ### Next.js
+
 - Use Socket.IO for broader compatibility
 - Handle API routes integration
 - Consider serverless limitations

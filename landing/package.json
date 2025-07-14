@@ -11,9 +11,9 @@
     "build": "wrangler deploy --dry-run"
   },
   "dependencies": {
-    "@wsx/core": "../packages/core",
-    "@wsx/client": "../packages/client",
-    "@wsx/server": "../packages/server",
+    "@wsx-sh/hono": "../packages/hono",
+    "@wsx-sh/core": "../packages/core",
+    "@wsx-sh/client": "../packages/client",
     "hono": "^3.12.0"
   },
   "devDependencies": {

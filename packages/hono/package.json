@@ -1,6 +1,6 @@
 {
-  "name": "@wsx/hono",
-  "version": "1.0.0",
+  "name": "@wsx-sh/hono",
+  "version": "1.0.1",
   "description": "Hono adapter for WSX - WebSocket server for Cloudflare Workers",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,7 +29,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@wsx/core": "workspace:*"
+    "@wsx-sh/core": "workspace:*"
   },
   "peerDependencies": {
     "hono": ">=4.0.0"

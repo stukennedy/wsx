@@ -10,6 +10,7 @@ Handlers are the core mechanism for processing WebSocket requests in WSX. They d
 ## Handler Basics
 
 ### Handler Function Signature
+
 All handlers follow the same signature:
 
 ```typescript
@@ -20,17 +21,18 @@ type WSXHandler = (
 ```
 
 ### Registering Handlers
+
 Register handlers using the `on` method:
 
 ```javascript
-import { html } from '@wsx/core';
+import { html } from "@wsx-sh/core";
 
 // Named handler
 wsx.on("button-click", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: html`<div>Button clicked!</div>`
+    html: html`<div>Button clicked!</div>`,
   };
 });
 
@@ -39,7 +41,7 @@ wsx.on(async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: html`<div>Default response</div>`
+    html: html`<div>Default response</div>`,
   };
 });
 ```
@@ -47,28 +49,30 @@ wsx.on(async (request, connection) => {
 ## Request Object
 
 ### WSXRequest Properties
+
 ```typescript
 interface WSXRequest {
-  id: string;        // Unique request identifier
-  handler: string;   // Handler name (from wx-send)
-  target: string;    // Target selector (from wx-target)
-  trigger: string;   // Trigger event (click, submit, etc.)
+  id: string; // Unique request identifier
+  handler: string; // Handler name (from wx-send)
+  target: string; // Target selector (from wx-target)
+  trigger: string; // Trigger event (click, submit, etc.)
   data?: Record<string, any>; // Form data or custom data
-  swap?: string;     // Swap specification
+  swap?: string; // Swap specification
 }
 ```
 
 ### Accessing Request Data
+
 ```javascript
 wsx.on("search", async (request, connection) => {
-  const query = request.data?.query || '';
+  const query = request.data?.query || "";
   const page = request.data?.page || 1;
-  
+
   // Process search...
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Results for: ${query}</div>`
+    html: `<div>Results for: ${query}</div>`,
   };
 });
 ```
@@ -76,23 +80,25 @@ wsx.on("search", async (request, connection) => {
 ## Response Object
 
 ### WSXResponse Properties
+
 ```typescript
 interface WSXResponse {
-  id: string;        // Must match request.id
-  target: string;    // CSS selector for target element
-  html: string;      // HTML content to swap
-  swap?: string;     // How to swap content
+  id: string; // Must match request.id
+  target: string; // CSS selector for target element
+  html: string; // HTML content to swap
+  swap?: string; // How to swap content
   oob?: WSXOOBUpdate[]; // Out-of-band updates
 }
 ```
 
 ### Basic Response
+
 ```javascript
 wsx.on("update-content", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Updated at ${new Date().toLocaleTimeString()}</div>`
+    html: `<div>Updated at ${new Date().toLocaleTimeString()}</div>`,
   };
 });
 ```
@@ -100,31 +106,33 @@ wsx.on("update-content", async (request, connection) => {
 ## Handler Types
 
 ### Named Handlers
+
 Handle specific actions by name:
 
 ```javascript
 wsx.on("user-login", async (request, connection) => {
   const { username, password } = request.data;
   const user = await authenticate(username, password);
-  
+
   if (user) {
     connection.sessionData = { user };
     return {
       id: request.id,
       target: request.target,
-      html: `<div>Welcome, ${user.name}!</div>`
+      html: `<div>Welcome, ${user.name}!</div>`,
     };
   } else {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Invalid credentials</div>`
+      html: `<div class="error">Invalid credentials</div>`,
     };
   }
 });
 ```
 
 ### Event-Based Handlers
+
 Handle by trigger type:
 
 ```javascript
@@ -132,7 +140,7 @@ wsx.on("click", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Clicked at ${new Date().toLocaleTimeString()}</div>`
+    html: `<div>Clicked at ${new Date().toLocaleTimeString()}</div>`,
   };
 });
 
@@ -140,22 +148,25 @@ wsx.on("submit", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Form submitted with data: ${JSON.stringify(request.data)}</div>`
+    html: `<div>Form submitted with data: ${JSON.stringify(
+      request.data
+    )}</div>`,
   };
 });
 ```
 
 ### Catch-All Handler
+
 Handle all unmatched requests:
 
 ```javascript
 wsx.on(async (request, connection) => {
   console.log(`Unhandled request: ${request.handler}`);
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Handler "${request.handler}" not found</div>`
+    html: `<div>Handler "${request.handler}" not found</div>`,
   };
 });
 ```
@@ -163,59 +174,62 @@ wsx.on(async (request, connection) => {
 ## Advanced Handler Patterns
 
 ### Conditional Logic
+
 ```javascript
 wsx.on("admin-action", async (request, connection) => {
   const user = connection.sessionData?.user;
-  
+
   if (!user?.isAdmin) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Access denied</div>`
+      html: `<div class="error">Access denied</div>`,
     };
   }
-  
+
   // Admin logic here...
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Admin action completed</div>`
+    html: `<div>Admin action completed</div>`,
   };
 });
 ```
 
 ### Async Operations
+
 ```javascript
 wsx.on("save-data", async (request, connection) => {
   try {
     const result = await database.save(request.data);
-    
+
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="success">Data saved: ${result.id}</div>`
+      html: `<div class="success">Data saved: ${result.id}</div>`,
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Save failed: ${error.message}</div>`
+      html: `<div class="error">Save failed: ${error.message}</div>`,
     };
   }
 });
 ```
 
 ### Multiple Responses
+
 Return arrays for multiple updates:
 
 ```javascript
 wsx.on("complex-update", async (request, connection) => {
   const updates = await getMultipleUpdates();
-  
-  return updates.map(update => ({
+
+  return updates.map((update) => ({
     id: request.id,
     target: update.target,
-    html: update.html
+    html: update.html,
   }));
 });
 ```
@@ -223,6 +237,7 @@ wsx.on("complex-update", async (request, connection) => {
 ## Handler Chaining
 
 ### Middleware Pattern
+
 ```javascript
 // Authentication middleware
 function requireAuth(handler) {
@@ -231,38 +246,42 @@ function requireAuth(handler) {
       return {
         id: request.id,
         target: request.target,
-        html: `<div class="error">Authentication required</div>`
+        html: `<div class="error">Authentication required</div>`,
       };
     }
-    
+
     return handler(request, connection);
   };
 }
 
 // Use middleware
-wsx.on("protected-action", requireAuth(async (request, connection) => {
-  return {
-    id: request.id,
-    target: request.target,
-    html: `<div>Protected action executed</div>`
-  };
-}));
+wsx.on(
+  "protected-action",
+  requireAuth(async (request, connection) => {
+    return {
+      id: request.id,
+      target: request.target,
+      html: `<div>Protected action executed</div>`,
+    };
+  })
+);
 ```
 
 ### Validation
+
 ```javascript
 function validateRequest(schema) {
   return (handler) => async (request, connection) => {
     const validation = schema.validate(request.data);
-    
+
     if (validation.error) {
       return {
         id: request.id,
         target: request.target,
-        html: `<div class="error">Validation failed: ${validation.error.message}</div>`
+        html: `<div class="error">Validation failed: ${validation.error.message}</div>`,
       };
     }
-    
+
     return handler(request, connection);
   };
 }
@@ -271,29 +290,31 @@ function validateRequest(schema) {
 ## Error Handling
 
 ### Try-Catch Pattern
+
 ```javascript
 wsx.on("risky-operation", async (request, connection) => {
   try {
     const result = await performRiskyOperation(request.data);
-    
+
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="success">Operation completed: ${result}</div>`
+      html: `<div class="success">Operation completed: ${result}</div>`,
     };
   } catch (error) {
-    console.error('Risky operation failed:', error);
-    
+    console.error("Risky operation failed:", error);
+
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Operation failed</div>`
+      html: `<div class="error">Operation failed</div>`,
     };
   }
 });
 ```
 
 ### Graceful Degradation
+
 ```javascript
 wsx.on("fallback-handler", async (request, connection) => {
   try {
@@ -301,7 +322,7 @@ wsx.on("fallback-handler", async (request, connection) => {
     return {
       id: request.id,
       target: request.target,
-      html: `<div>Primary: ${primaryResult}</div>`
+      html: `<div>Primary: ${primaryResult}</div>`,
     };
   } catch (error) {
     // Fallback to secondary service
@@ -309,7 +330,7 @@ wsx.on("fallback-handler", async (request, connection) => {
     return {
       id: request.id,
       target: request.target,
-      html: `<div>Fallback: ${fallbackResult}</div>`
+      html: `<div>Fallback: ${fallbackResult}</div>`,
     };
   }
 });

@@ -19,11 +19,11 @@ Choose your framework and install the corresponding packages:
 <CodeGroup>
 
 ```bash Express
-npm install @wsx/core @wsx/express
+npm install @wsx-sh/core @wsx-sh/express
 ```
 
 ```bash Hono
-npm install @wsx/core @wsx/hono
+npm install @wsx-sh/core @wsx-sh/hono
 ```
 
 </CodeGroup>
@@ -33,7 +33,7 @@ npm install @wsx/core @wsx/hono
 <CodeGroup>
 
 ```javascript Express
-import { createExpressWSXServer } from "@wsx/express";
+import { createExpressWSXServer } from "@wsx-sh/express";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -99,7 +99,7 @@ app.listen(PORT, () => {
 ```
 
 ```javascript Hono
-import { createHonoWSXServer } from "@wsx/hono";
+import { createHonoWSXServer } from "@wsx-sh/hono";
 
 // Create WSX server
 const wsx = createHonoWSXServer();
@@ -161,7 +161,7 @@ export default {
 Copy the WSX client library to your public directory:
 
 ```bash
-cp node_modules/@wsx/client/wsx.js public/wsx.js
+cp node_modules/@wsx-sh/client/wsx.js public/wsx.js
 ```
 
 Or download it from the [GitHub repository](https://github.com/stukennedy/wsx/blob/main/packages/client/wsx.js).
@@ -245,10 +245,11 @@ Now that you have WSX running, explore these features:
     configuration. Check the browser console for connection errors.
   </Accordion>
 
-  <Accordion title="Button clicks don't work">
-    Ensure the WSX client library is loaded before the page content. Check that
-    the `wx-send` attribute is set correctly.
-  </Accordion>
+{" "}
+<Accordion title="Button clicks don't work">
+  Ensure the WSX client library is loaded before the page content. Check that
+  the `wx-send` attribute is set correctly.
+</Accordion>
 
   <Accordion title="Updates aren't real-time">
     Verify that your server handler is calling `wsx.broadcast()` to update all

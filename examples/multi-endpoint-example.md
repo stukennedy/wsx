@@ -5,53 +5,54 @@ This example demonstrates how to create multiple WSX servers with different WebS
 ## Server Setup
 
 ```typescript
-import { createHonoWSXServer } from "@wsx/hono";
-import { html } from "@wsx/core";
+import { createHonoWSXServer } from "@wsx-sh/hono";
+import { html } from "@wsx-sh/core";
 
 // Chat application WebSocket server
 const chatWsx = createHonoWSXServer({
-  websocketPath: '/chat-ws',
+  websocketPath: "/chat-ws",
   onConnection: (connection) => {
-    console.log('Chat connection established:', connection.id);
-  }
+    console.log("Chat connection established:", connection.id);
+  },
 });
 
 // Dashboard WebSocket server
 const dashboardWsx = createHonoWSXServer({
-  websocketPath: '/dashboard-ws',
+  websocketPath: "/dashboard-ws",
   onConnection: (connection) => {
-    console.log('Dashboard connection established:', connection.id);
-  }
+    console.log("Dashboard connection established:", connection.id);
+  },
 });
 
 // Main application
 const app = chatWsx.getApp();
 
 // Chat handlers
-chatWsx.on('send-message', async (request, connection) => {
+chatWsx.on("send-message", async (request, connection) => {
   const { message } = request.data;
-  
+
   // Broadcast to all chat connections
-  chatWsx.broadcast('#chat-messages', html`
-    <div class="message">
-      <strong>${connection.id}:</strong> ${message}
-    </div>
-  `);
-  
+  chatWsx.broadcast(
+    "#chat-messages",
+    html`
+      <div class="message"><strong>${connection.id}:</strong> ${message}</div>
+    `
+  );
+
   return {
     id: request.id,
     target: request.target,
-    html: html`<div class="success">Message sent!</div>`
+    html: html`<div class="success">Message sent!</div>`,
   };
 });
 
 // Dashboard handlers
-dashboardWsx.on('update-metrics', async (request, connection) => {
+dashboardWsx.on("update-metrics", async (request, connection) => {
   const metrics = {
     users: dashboardWsx.getConnectionCount(),
-    messages: Math.floor(Math.random() * 1000)
+    messages: Math.floor(Math.random() * 1000),
   };
-  
+
   return {
     id: request.id,
     target: request.target,
@@ -60,12 +61,12 @@ dashboardWsx.on('update-metrics', async (request, connection) => {
         <div>Active Users: ${metrics.users}</div>
         <div>Messages: ${metrics.messages}</div>
       </div>
-    `
+    `,
   };
 });
 
 // Routes
-app.get('/chat', (c) => {
+app.get("/chat", (c) => {
   return c.html(html`
     <!DOCTYPE html>
     <html>
@@ -85,7 +86,7 @@ app.get('/chat', (c) => {
   `);
 });
 
-app.get('/dashboard', (c) => {
+app.get("/dashboard", (c) => {
   return c.html(html`
     <!DOCTYPE html>
     <html>
@@ -93,11 +94,15 @@ app.get('/dashboard', (c) => {
         <title>Dashboard</title>
         <script src="/wsx.js"></script>
       </head>
-      <body wx-config='{"url": "ws://localhost:8787/dashboard-ws", "debug": true}'>
-        <div id="metrics" 
-             wx-send="update-metrics"
-             wx-target="#metrics"
-             wx-trigger="load, click interval:5000ms">
+      <body
+        wx-config='{"url": "ws://localhost:8787/dashboard-ws", "debug": true}'
+      >
+        <div
+          id="metrics"
+          wx-send="update-metrics"
+          wx-target="#metrics"
+          wx-trigger="load, click interval:5000ms"
+        >
           <div>Loading metrics...</div>
         </div>
       </body>
@@ -109,7 +114,7 @@ export default {
   fetch: app.fetch,
   chatWsx,
   dashboardWsx,
-  app
+  app,
 };
 ```
 
@@ -118,13 +123,17 @@ export default {
 Each page specifies its own WebSocket endpoint in the `wx-config` attribute:
 
 ### Chat Page
+
 ```html
-<body wx-config='{"url": "ws://localhost:8787/chat-ws", "debug": true}'>
+<body wx-config='{"url": "ws://localhost:8787/chat-ws", "debug": true}'></body>
 ```
 
-### Dashboard Page  
+### Dashboard Page
+
 ```html
-<body wx-config='{"url": "ws://localhost:8787/dashboard-ws", "debug": true}'>
+<body
+  wx-config='{"url": "ws://localhost:8787/dashboard-ws", "debug": true}'
+></body>
 ```
 
 ## Benefits
@@ -141,7 +150,7 @@ The `WSXServerConfig` interface provides these options:
 
 ```typescript
 interface WSXServerConfig {
-  websocketPath?: string;           // Default: '/ws'
+  websocketPath?: string; // Default: '/ws'
   onConnection?(connection: WSXConnection): void;
   onDisconnection?(connection: WSXConnection): void;
 }
@@ -152,12 +161,12 @@ interface WSXServerConfig {
 The same pattern works with Express:
 
 ```typescript
-import { createExpressWSXServer } from "@wsx/express";
+import { createExpressWSXServer } from "@wsx-sh/express";
 
 const wsx = createExpressWSXServer({
-  websocketPath: '/api/ws',
+  websocketPath: "/api/ws",
   onConnection: (connection) => {
-    console.log('API connection:', connection.id);
-  }
+    console.log("API connection:", connection.id);
+  },
 });
 ```

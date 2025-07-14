@@ -1,6 +1,6 @@
 {
-  "name": "@wsx/express",
-  "version": "1.0.0",
+  "name": "@wsx-sh/express",
+  "version": "1.0.1",
   "description": "Express adapter for WSX - WebSocket server for Node.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -29,7 +29,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@wsx/core": "workspace:*"
+    "@wsx-sh/core": "workspace:*"
   },
   "peerDependencies": {
     "express": ">=4.0.0",

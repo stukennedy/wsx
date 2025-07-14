@@ -30,10 +30,10 @@
 
 ```bash
 # For Express
-npm install @wsx/core @wsx/express
+npm install @wsx-sh/core @wsx-sh/express
 
 # For Hono
-npm install @wsx/core @wsx/hono
+npm install @wsx-sh/core @wsx-sh/hono
 ```
 
 ### 2. Create a Server
@@ -41,8 +41,8 @@ npm install @wsx/core @wsx/hono
 **Express Example:**
 
 ```javascript
-import { createExpressWSXServer } from "@wsx/express";
-import { html } from '@wsx/core';
+import { createExpressWSXServer } from "@wsx-sh/express";
+import { html } from "@wsx-sh/core";
 
 const wsx = createExpressWSXServer();
 const app = wsx.getApp();
@@ -63,8 +63,8 @@ app.listen(3000);
 **Hono Example:**
 
 ```javascript
-import { createHonoWSXServer } from "@wsx/hono";
-import { html } from '@wsx/core';
+import { createHonoWSXServer } from "@wsx-sh/hono";
+import { html } from "@wsx-sh/core";
 
 const wsx = createHonoWSXServer();
 const app = wsx.getApp();
@@ -106,11 +106,11 @@ WSX is organized as a monorepo with separate packages for different use cases:
 
 ```bash
 # Core library (required)
-npm install @wsx/core
+npm install @wsx-sh/core
 
 # Framework adapters (choose one)
-npm install @wsx/express  # For Express.js
-npm install @wsx/hono     # For Hono framework
+npm install @wsx-sh/express  # For Express.js
+npm install @wsx-sh/hono     # For Hono framework
 
 # Client library is included in examples/
 ```
@@ -400,11 +400,11 @@ setInterval(() => {
 WSX provides a template helper for better TypeScript support and syntax highlighting when building HTML in your handlers:
 
 ```javascript
-import { html } from '@wsx/core';
+import { html } from "@wsx-sh/core";
 
 wsx.on("create-user", async (request, connection) => {
   const { name, email } = request.data;
-  
+
   // Use the html helper for template literals
   return {
     id: request.id,
@@ -415,7 +415,7 @@ wsx.on("create-user", async (request, connection) => {
         <p>Email: ${email}</p>
         <small>Created: ${new Date().toLocaleString()}</small>
       </div>
-    `
+    `,
   };
 });
 ```
@@ -431,10 +431,10 @@ wsx.on("create-user", async (request, connection) => {
 
 ```javascript
 // ✅ Recommended: Use the html helper
-html: html`<div>Content with ${variable}</div>`
+html: html`<div>Content with ${variable}</div>`;
 
 // ❌ Avoid: Plain template literals
-html: `<div>Content with ${variable}</div>`
+html: `<div>Content with ${variable}</div>`;
 ```
 
 ## 📖 API Reference

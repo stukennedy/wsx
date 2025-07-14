@@ -1,5 +1,5 @@
-import { createHonoWSXServer } from "@wsx/hono";
-import { html, WSXConnection } from "@wsx/core";
+import { createHonoWSXServer } from "@wsx-sh/hono";
+import { html, WSXConnection } from "@wsx-sh/core";
 import { landingPage } from "./pages/landing";
 import { applyLayouts } from "./layout";
 
@@ -80,8 +80,8 @@ wsx.on("show-feature", async (request: any, connection: any) => {
       icon: "🔧",
       title: "Framework Agnostic",
       description: "Works with Express, Hono, and custom adapters",
-      code: `import { createHonoWSXServer } from "@wsx/hono";
-import { createExpressWSXServer } from "@wsx/express";
+      code: `import { createHonoWSXServer } from "@wsx-sh/hono";
+import { createExpressWSXServer } from "@wsx-sh/express";
 
 const wsx = createHonoWSXServer();`,
     },
@@ -185,6 +185,4 @@ wsx.on("get-stats", async (request: any, connection: any) => {
 // Export the fetch function that Wrangler expects
 export default {
   fetch: app.fetch,
-  wsx,
-  app,
 };

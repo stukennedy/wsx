@@ -5,20 +5,21 @@ description: "Using WSX with Express.js framework"
 
 # Express Integration
 
-WSX provides seamless integration with Express.js through the `@wsx/express` adapter, allowing you to add real-time WebSocket functionality to your Express applications.
+WSX provides seamless integration with Express.js through the `@wsx-sh/express` adapter, allowing you to add real-time WebSocket functionality to your Express applications.
 
 ## Installation
 
 ```bash
-npm install @wsx/core @wsx/express
+npm install @wsx-sh/core @wsx-sh/express
 ```
 
 ## Basic Setup
 
 ### Quick Start
+
 ```javascript
-import { createExpressWSXServer } from "@wsx/express";
-import { html } from '@wsx/core';
+import { createExpressWSXServer } from "@wsx-sh/express";
+import { html } from "@wsx-sh/core";
 import express from "express";
 
 // Create WSX server with Express adapter
@@ -30,15 +31,17 @@ wsx.on("hello", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: html`<div>Hello from Express at ${new Date().toLocaleTimeString()}!</div>`
+    html: html`<div>
+      Hello from Express at ${new Date().toLocaleTimeString()}!
+    </div>`,
   };
 });
 
 // Serve static files
-app.use(express.static('public'));
+app.use(express.static("public"));
 
 // Regular Express routes
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html>
@@ -66,55 +69,62 @@ app.listen(PORT, () => {
 ## Configuration
 
 ### WSX Configuration
+
 ```javascript
 const wsx = createExpressWSXServer({
   // WebSocket path
-  path: '/ws',
-  
+  path: "/ws",
+
   // Connection limits
   maxConnections: 1000,
-  
+
   // Message size limits
   maxMessageSize: 1024 * 1024, // 1MB
-  
+
   // Heartbeat settings
   pingInterval: 30000,
   pongTimeout: 10000,
-  
+
   // CORS settings
   cors: {
-    origin: ['http://localhost:3000'],
-    credentials: true
-  }
+    origin: ["http://localhost:3000"],
+    credentials: true,
+  },
 });
 ```
 
 ### Express Middleware Integration
+
 ```javascript
-import cors from 'cors';
-import helmet from 'helmet';
-import compression from 'compression';
-import rateLimit from 'express-rate-limit';
+import cors from "cors";
+import helmet from "helmet";
+import compression from "compression";
+import rateLimit from "express-rate-limit";
 
 const wsx = createExpressWSXServer();
 const app = wsx.getApp();
 
 // Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      connectSrc: ["'self'", "ws://localhost:3000", "wss://your-domain.com"]
-    }
-  }
-}));
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        connectSrc: ["'self'", "ws://localhost:3000", "wss://your-domain.com"],
+      },
+    },
+  })
+);
 
 // CORS middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://your-domain.com'] 
-    : ['http://localhost:3000'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["https://your-domain.com"]
+        : ["http://localhost:3000"],
+    credentials: true,
+  })
+);
 
 // Compression
 app.use(compression());
@@ -122,54 +132,57 @@ app.use(compression());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
 });
 app.use(limiter);
 
 // Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 ```
 
 ## Authentication Integration
 
 ### Session-Based Authentication
+
 ```javascript
-import session from 'express-session';
-import MongoStore from 'connect-mongo';
+import session from "express-session";
+import MongoStore from "connect-mongo";
 
 // Session middleware
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI
-  }),
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI,
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
 
 // Authentication middleware
 function requireAuth(req, res, next) {
   if (req.session.user) {
     next();
   } else {
-    res.status(401).json({ error: 'Authentication required' });
+    res.status(401).json({ error: "Authentication required" });
   }
 }
 
 // Apply to protected routes
-app.use('/api/protected', requireAuth);
+app.use("/api/protected", requireAuth);
 
 // WSX connection authentication
 wsx.onConnection = (connection) => {
   // Extract session from connection request
   const sessionCookie = connection.request.headers.cookie;
   const sessionId = parseSessionId(sessionCookie);
-  
+
   if (sessionId) {
     // Load session data
     const sessionData = getSessionData(sessionId);
@@ -185,31 +198,32 @@ wsx.on("protected-action", async (request, connection) => {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Please log in to perform this action</div>`
+      html: `<div class="error">Please log in to perform this action</div>`,
     };
   }
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Hello, ${connection.sessionData.user.name}!</div>`
+    html: `<div>Hello, ${connection.sessionData.user.name}!</div>`,
   };
 });
 ```
 
 ### JWT Authentication
+
 ```javascript
-import jwt from 'jsonwebtoken';
+import jwt from "jsonwebtoken";
 
 // JWT middleware for HTTP routes
 function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
   if (!token) {
     return res.sendStatus(401);
   }
-  
+
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) return res.sendStatus(403);
     req.user = user;
@@ -218,18 +232,18 @@ function authenticateToken(req, res, next) {
 }
 
 // Protected API routes
-app.use('/api/protected', authenticateToken);
+app.use("/api/protected", authenticateToken);
 
 // WSX JWT authentication
 wsx.onConnection = (connection) => {
   const token = extractTokenFromConnection(connection);
-  
+
   if (token) {
     try {
       const user = jwt.verify(token, process.env.JWT_SECRET);
       connection.sessionData = { user };
     } catch (error) {
-      console.error('Invalid JWT token:', error);
+      console.error("Invalid JWT token:", error);
       connection.close();
     }
   }
@@ -237,56 +251,57 @@ wsx.onConnection = (connection) => {
 
 function extractTokenFromConnection(connection) {
   // Extract from query parameter
-  const url = new URL(connection.request.url, 'http://localhost');
-  const token = url.searchParams.get('token');
-  
+  const url = new URL(connection.request.url, "http://localhost");
+  const token = url.searchParams.get("token");
+
   if (token) return token;
-  
+
   // Extract from authorization header
   const authHeader = connection.request.headers.authorization;
-  return authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  return authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 }
 ```
 
 ## Database Integration
 
 ### MongoDB with Mongoose
+
 ```javascript
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
 });
 
 // User model
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
 });
 
-const User = mongoose.model('User', UserSchema);
+const User = mongoose.model("User", UserSchema);
 
 // WSX handlers with database operations
 wsx.on("create-user", async (request, connection) => {
   try {
     const { username, email } = request.data;
-    
+
     const user = new User({ username, email });
     await user.save();
-    
+
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="success">User ${username} created successfully!</div>`
+      html: `<div class="success">User ${username} created successfully!</div>`,
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Failed to create user: ${error.message}</div>`
+      html: `<div class="error">Failed to create user: ${error.message}</div>`,
     };
   }
 });
@@ -294,55 +309,60 @@ wsx.on("create-user", async (request, connection) => {
 wsx.on("get-users", async (request, connection) => {
   try {
     const users = await User.find().sort({ createdAt: -1 }).limit(10);
-    
-    const usersHtml = users.map(user => `
+
+    const usersHtml = users
+      .map(
+        (user) => `
       <div class="user">
         <h3>${user.username}</h3>
         <p>${user.email}</p>
         <small>Joined: ${user.createdAt.toLocaleDateString()}</small>
       </div>
-    `).join('');
-    
+    `
+      )
+      .join("");
+
     return {
       id: request.id,
       target: request.target,
-      html: usersHtml
+      html: usersHtml,
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Failed to load users</div>`
+      html: `<div class="error">Failed to load users</div>`,
     };
   }
 });
 ```
 
 ### PostgreSQL with Sequelize
+
 ```javascript
-import { Sequelize, DataTypes } from 'sequelize';
+import { Sequelize, DataTypes } from "sequelize";
 
 // Database connection
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialect: 'postgres',
-  logging: false
+  dialect: "postgres",
+  logging: false,
 });
 
 // User model
-const User = sequelize.define('User', {
+const User = sequelize.define("User", {
   username: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
+    unique: true,
   },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
     unique: true,
     validate: {
-      isEmail: true
-    }
-  }
+      isEmail: true,
+    },
+  },
 });
 
 // Sync database
@@ -352,34 +372,38 @@ sequelize.sync();
 wsx.on("user-search", async (request, connection) => {
   try {
     const { query } = request.data;
-    
+
     const users = await User.findAll({
       where: {
         [Op.or]: [
           { username: { [Op.iLike]: `%${query}%` } },
-          { email: { [Op.iLike]: `%${query}%` } }
-        ]
+          { email: { [Op.iLike]: `%${query}%` } },
+        ],
       },
-      limit: 10
+      limit: 10,
     });
-    
-    const usersHtml = users.map(user => `
+
+    const usersHtml = users
+      .map(
+        (user) => `
       <div class="user-result">
         <span class="username">${user.username}</span>
         <span class="email">${user.email}</span>
       </div>
-    `).join('');
-    
+    `
+      )
+      .join("");
+
     return {
       id: request.id,
       target: request.target,
-      html: usersHtml || '<div>No users found</div>'
+      html: usersHtml || "<div>No users found</div>",
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Search failed</div>`
+      html: `<div class="error">Search failed</div>`,
     };
   }
 });
@@ -388,26 +412,27 @@ wsx.on("user-search", async (request, connection) => {
 ## Real-Time Features
 
 ### Live Chat Application
+
 ```javascript
 // Chat message model
 const MessageSchema = new mongoose.Schema({
   content: { type: String, required: true },
   username: { type: String, required: true },
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
 });
 
-const Message = mongoose.model('Message', MessageSchema);
+const Message = mongoose.model("Message", MessageSchema);
 
 // Send message handler
 wsx.on("send-message", async (request, connection) => {
   try {
     const { content } = request.data;
-    const username = connection.sessionData?.user?.username || 'Anonymous';
-    
+    const username = connection.sessionData?.user?.username || "Anonymous";
+
     // Save message to database
     const message = new Message({ content, username });
     await message.save();
-    
+
     // Broadcast to all connected clients
     const messageHtml = `
       <div class="message">
@@ -416,21 +441,21 @@ wsx.on("send-message", async (request, connection) => {
         <div class="content">${content}</div>
       </div>
     `;
-    
+
     wsx.broadcast("#chat-messages", messageHtml, "beforeend");
-    
+
     // Clear sender's input
     return {
       id: request.id,
       target: "#message-input",
       html: `<input type="text" placeholder="Type a message..." />`,
-      swap: "outerHTML"
+      swap: "outerHTML",
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Failed to send message</div>`
+      html: `<div class="error">Failed to send message</div>`,
     };
   }
 });
@@ -442,45 +467,50 @@ wsx.on("load-messages", async (request, connection) => {
       .sort({ timestamp: -1 })
       .limit(50)
       .reverse();
-    
-    const messagesHtml = messages.map(msg => `
+
+    const messagesHtml = messages
+      .map(
+        (msg) => `
       <div class="message">
         <span class="username">${msg.username}</span>
         <span class="timestamp">${msg.timestamp.toLocaleTimeString()}</span>
         <div class="content">${msg.content}</div>
       </div>
-    `).join('');
-    
+    `
+      )
+      .join("");
+
     return {
       id: request.id,
       target: request.target,
-      html: messagesHtml
+      html: messagesHtml,
     };
   } catch (error) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Failed to load messages</div>`
+      html: `<div class="error">Failed to load messages</div>`,
     };
   }
 });
 ```
 
 ### Live Dashboard
+
 ```javascript
 // Dashboard stats endpoint
-app.get('/api/stats', authenticateToken, async (req, res) => {
+app.get("/api/stats", authenticateToken, async (req, res) => {
   try {
     const stats = {
       totalUsers: await User.countDocuments(),
       onlineUsers: wsx.getConnectionCount(),
       totalMessages: await Message.countDocuments(),
-      recentActivity: await getRecentActivity()
+      recentActivity: await getRecentActivity(),
     };
-    
+
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch stats' });
+    res.status(500).json({ error: "Failed to fetch stats" });
   }
 });
 
@@ -491,9 +521,9 @@ setInterval(async () => {
       totalUsers: await User.countDocuments(),
       onlineUsers: wsx.getConnectionCount(),
       totalMessages: await Message.countDocuments(),
-      recentActivity: await getRecentActivity()
+      recentActivity: await getRecentActivity(),
     };
-    
+
     const dashboardHtml = `
       <div class="stats-grid">
         <div class="stat">
@@ -510,16 +540,17 @@ setInterval(async () => {
         </div>
       </div>
     `;
-    
+
     // Broadcast to admin users
-    const adminConnections = wsx.getConnections()
-      .filter(conn => conn.sessionData?.user?.role === 'admin');
-    
-    adminConnections.forEach(conn => {
+    const adminConnections = wsx
+      .getConnections()
+      .filter((conn) => conn.sessionData?.user?.role === "admin");
+
+    adminConnections.forEach((conn) => {
       wsx.sendToConnection(conn.id, "#dashboard-stats", dashboardHtml);
     });
   } catch (error) {
-    console.error('Dashboard update failed:', error);
+    console.error("Dashboard update failed:", error);
   }
 }, 30000);
 ```
@@ -527,58 +558,69 @@ setInterval(async () => {
 ## File Upload Integration
 
 ### Multer Integration
+
 ```javascript
-import multer from 'multer';
-import path from 'path';
+import multer from "multer";
+import path from "path";
 
 // Configure multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, "uploads/");
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
+  },
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = allowedTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
     const mimetype = allowedTypes.test(file.mimetype);
-    
+
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only images are allowed'));
+      cb(new Error("Only images are allowed"));
     }
-  }
+  },
 });
 
 // File upload endpoint
-app.post('/api/upload', authenticateToken, upload.single('image'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
+app.post(
+  "/api/upload",
+  authenticateToken,
+  upload.single("image"),
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+
+    res.json({
+      filename: req.file.filename,
+      originalName: req.file.originalname,
+      size: req.file.size,
+      url: `/uploads/${req.file.filename}`,
+    });
   }
-  
-  res.json({
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    size: req.file.size,
-    url: `/uploads/${req.file.filename}`
-  });
-});
+);
 
 // Serve uploaded files
-app.use('/uploads', express.static('uploads'));
+app.use("/uploads", express.static("uploads"));
 
 // WSX handler for file upload notification
 wsx.on("file-uploaded", async (request, connection) => {
   const { filename, originalName } = request.data;
-  
+
   // Broadcast to relevant users
   const notificationHtml = `
     <div class="upload-notification">
@@ -586,13 +628,13 @@ wsx.on("file-uploaded", async (request, connection) => {
       <img src="/uploads/${filename}" alt="${originalName}" style="max-width: 200px;" />
     </div>
   `;
-  
+
   wsx.broadcast("#file-notifications", notificationHtml, "afterbegin");
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div class="success">File uploaded successfully</div>`
+    html: `<div class="success">File uploaded successfully</div>`,
   };
 });
 ```
@@ -600,68 +642,75 @@ wsx.on("file-uploaded", async (request, connection) => {
 ## Error Handling
 
 ### Global Error Handler
+
 ```javascript
 // Express error handler
 app.use((error, req, res, next) => {
   console.error(error.stack);
-  
-  if (error.name === 'ValidationError') {
+
+  if (error.name === "ValidationError") {
     return res.status(400).json({ error: error.message });
   }
-  
-  if (error.name === 'CastError') {
-    return res.status(400).json({ error: 'Invalid ID format' });
+
+  if (error.name === "CastError") {
+    return res.status(400).json({ error: "Invalid ID format" });
   }
-  
-  res.status(500).json({ error: 'Internal server error' });
+
+  res.status(500).json({ error: "Internal server error" });
 });
 
 // WSX error handler
 wsx.onError = (error, connection) => {
-  console.error('WSX error:', error);
-  
+  console.error("WSX error:", error);
+
   if (connection) {
-    connection.send(JSON.stringify({
-      type: 'error',
-      message: 'An unexpected error occurred'
-    }));
+    connection.send(
+      JSON.stringify({
+        type: "error",
+        message: "An unexpected error occurred",
+      })
+    );
   }
 };
 
 // 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
+app.use("*", (req, res) => {
+  res.status(404).json({ error: "Route not found" });
 });
 ```
 
 ## Production Deployment
 
 ### PM2 Configuration
+
 ```javascript
 // ecosystem.config.js
 module.exports = {
-  apps: [{
-    name: 'wsx-express-app',
-    script: 'server.js',
-    instances: 'max',
-    exec_mode: 'cluster',
-    env: {
-      NODE_ENV: 'development',
-      PORT: 3000
+  apps: [
+    {
+      name: "wsx-express-app",
+      script: "server.js",
+      instances: "max",
+      exec_mode: "cluster",
+      env: {
+        NODE_ENV: "development",
+        PORT: 3000,
+      },
+      env_production: {
+        NODE_ENV: "production",
+        PORT: 8080,
+      },
+      error_file: "./logs/err.log",
+      out_file: "./logs/out.log",
+      log_file: "./logs/combined.log",
+      time: true,
     },
-    env_production: {
-      NODE_ENV: 'production',
-      PORT: 8080
-    },
-    error_file: './logs/err.log',
-    out_file: './logs/out.log',
-    log_file: './logs/combined.log',
-    time: true
-  }]
+  ],
 };
 ```
 
 ### Docker Setup
+
 ```dockerfile
 FROM node:18-alpine
 
@@ -680,6 +729,7 @@ CMD ["npm", "start"]
 ```
 
 ### Nginx Configuration
+
 ```nginx
 upstream wsx_app {
     server 127.0.0.1:3000;
@@ -688,7 +738,7 @@ upstream wsx_app {
 server {
     listen 80;
     server_name your-domain.com;
-    
+
     # WebSocket proxy
     location /ws {
         proxy_pass http://wsx_app;
@@ -700,7 +750,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
     }
-    
+
     # Regular HTTP proxy
     location / {
         proxy_pass http://wsx_app;

@@ -10,417 +10,452 @@ This example demonstrates how to create interactive forms with real-time validat
 ## Basic Form with Validation
 
 ### HTML Structure
+
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>WSX Interactive Forms</title>
-  <script src="/wsx.js"></script>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f9fafb;
-    }
-    
-    .form-container {
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    .form-group label {
-      display: block;
-      margin-bottom: 5px;
-      font-weight: 500;
-      color: #374151;
-    }
-    
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e5e7eb;
-      border-radius: 6px;
-      font-size: 16px;
-      transition: border-color 0.2s;
-    }
-    
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      outline: none;
-      border-color: #2563eb;
-    }
-    
-    .form-group.error input,
-    .form-group.error select,
-    .form-group.error textarea {
-      border-color: #ef4444;
-    }
-    
-    .form-group.success input,
-    .form-group.success select,
-    .form-group.success textarea {
-      border-color: #10b981;
-    }
-    
-    .error-message {
-      color: #ef4444;
-      font-size: 14px;
-      margin-top: 5px;
-    }
-    
-    .success-message {
-      color: #10b981;
-      font-size: 14px;
-      margin-top: 5px;
-    }
-    
-    .form-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 30px;
-    }
-    
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 6px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    
-    .btn-primary {
-      background: #2563eb;
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background: #1d4ed8;
-    }
-    
-    .btn-secondary {
-      background: #6b7280;
-      color: white;
-    }
-    
-    .btn-secondary:hover {
-      background: #4b5563;
-    }
-    
-    .loading {
-      opacity: 0.6;
-      pointer-events: none;
-    }
-    
-    .progress-bar {
-      width: 100%;
-      height: 8px;
-      background: #e5e7eb;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-    
-    .progress-fill {
-      height: 100%;
-      background: #2563eb;
-      transition: width 0.3s ease;
-    }
-    
-    .dynamic-fields {
-      border: 2px dashed #e5e7eb;
-      border-radius: 6px;
-      padding: 20px;
-      margin: 20px 0;
-    }
-    
-    .field-group {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 10px;
-      align-items: end;
-    }
-    
-    .field-group .form-group {
-      flex: 1;
-      margin-bottom: 0;
-    }
-    
-    .remove-field {
-      background: #ef4444;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      height: 46px;
-    }
-    
-    .add-field {
-      background: #10b981;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-  </style>
-</head>
-<body>
-  <div wx-config='{"url": "ws://localhost:3000/ws"}'>
-    <div class="form-container">
-      <h1>Interactive Registration Form</h1>
-      
-      <div id="form-progress" class="progress-bar">
-        <div class="progress-fill" style="width: 0%"></div>
-      </div>
-      
-      <form id="registration-form">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input 
-            type="text" 
-            id="username" 
-            name="username" 
-            placeholder="Enter your username"
-            wx-send="validate-field"
-            wx-target="#username-feedback"
-            wx-trigger="blur"
-            wx-include="name,value"
-            required
-          />
-          <div id="username-feedback"></div>
+  <head>
+    <title>WSX Interactive Forms</title>
+    <script src="/wsx.js"></script>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f9fafb;
+      }
+
+      .form-container {
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: #374151;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 6px;
+        font-size: 16px;
+        transition: border-color 0.2s;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #2563eb;
+      }
+
+      .form-group.error input,
+      .form-group.error select,
+      .form-group.error textarea {
+        border-color: #ef4444;
+      }
+
+      .form-group.success input,
+      .form-group.success select,
+      .form-group.success textarea {
+        border-color: #10b981;
+      }
+
+      .error-message {
+        color: #ef4444;
+        font-size: 14px;
+        margin-top: 5px;
+      }
+
+      .success-message {
+        color: #10b981;
+        font-size: 14px;
+        margin-top: 5px;
+      }
+
+      .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .btn-primary {
+        background: #2563eb;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #1d4ed8;
+      }
+
+      .btn-secondary {
+        background: #6b7280;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #4b5563;
+      }
+
+      .loading {
+        opacity: 0.6;
+        pointer-events: none;
+      }
+
+      .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: #2563eb;
+        transition: width 0.3s ease;
+      }
+
+      .dynamic-fields {
+        border: 2px dashed #e5e7eb;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+
+      .field-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: end;
+      }
+
+      .field-group .form-group {
+        flex: 1;
+        margin-bottom: 0;
+      }
+
+      .remove-field {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        height: 46px;
+      }
+
+      .add-field {
+        background: #10b981;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div wx-config='{"url": "ws://localhost:3000/ws"}'>
+      <div class="form-container">
+        <h1>Interactive Registration Form</h1>
+
+        <div id="form-progress" class="progress-bar">
+          <div class="progress-fill" style="width: 0%"></div>
         </div>
-        
-        <div class="form-group">
-          <label for="email">Email</label>
-          <input 
-            type="email" 
-            id="email" 
-            name="email" 
-            placeholder="Enter your email"
-            wx-send="validate-field"
-            wx-target="#email-feedback"
-            wx-trigger="blur"
-            wx-include="name,value"
-            required
-          />
-          <div id="email-feedback"></div>
-        </div>
-        
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input 
-            type="password" 
-            id="password" 
-            name="password" 
-            placeholder="Enter your password"
-            wx-send="validate-field"
-            wx-target="#password-feedback"
-            wx-trigger="input delay:500ms"
-            wx-include="name,value"
-            required
-          />
-          <div id="password-feedback"></div>
-        </div>
-        
-        <div class="form-group">
-          <label for="confirmPassword">Confirm Password</label>
-          <input 
-            type="password" 
-            id="confirmPassword" 
-            name="confirmPassword" 
-            placeholder="Confirm your password"
-            wx-send="validate-field"
-            wx-target="#confirmPassword-feedback"
-            wx-trigger="input delay:500ms"
-            wx-include="name,value"
-            required
-          />
-          <div id="confirmPassword-feedback"></div>
-        </div>
-        
-        <div class="form-group">
-          <label for="country">Country</label>
-          <select 
-            id="country" 
-            name="country"
-            wx-send="load-states"
-            wx-target="#state-container"
-            wx-trigger="change"
-            wx-include="value"
-            required
-          >
-            <option value="">Select your country</option>
-            <option value="us">United States</option>
-            <option value="ca">Canada</option>
-            <option value="uk">United Kingdom</option>
-            <option value="au">Australia</option>
-          </select>
-        </div>
-        
-        <div id="state-container"></div>
-        
-        <div class="dynamic-fields">
-          <h3>Skills</h3>
-          <div id="skills-container">
-            <div class="field-group">
-              <div class="form-group">
-                <input type="text" name="skills[]" placeholder="Enter a skill" />
-              </div>
-              <button type="button" class="remove-field" wx-send="remove-skill" wx-target="this" wx-trigger="click">×</button>
-            </div>
+
+        <form id="registration-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter your username"
+              wx-send="validate-field"
+              wx-target="#username-feedback"
+              wx-trigger="blur"
+              wx-include="name,value"
+              required
+            />
+            <div id="username-feedback"></div>
           </div>
-          <button type="button" class="add-field" wx-send="add-skill" wx-target="#skills-container" wx-trigger="click">
-            Add Skill
-          </button>
-        </div>
-        
-        <div class="form-actions">
-          <button 
-            type="submit" 
-            class="btn btn-primary"
-            wx-send="submit-form"
-            wx-target="#form-result"
-            wx-trigger="click"
-            wx-include="form"
-          >
-            Register
-          </button>
-          <button type="button" class="btn btn-secondary" wx-send="reset-form" wx-target="#registration-form" wx-trigger="click">
-            Reset
-          </button>
-        </div>
-      </form>
-      
-      <div id="form-result"></div>
+
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              placeholder="Enter your email"
+              wx-send="validate-field"
+              wx-target="#email-feedback"
+              wx-trigger="blur"
+              wx-include="name,value"
+              required
+            />
+            <div id="email-feedback"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              wx-send="validate-field"
+              wx-target="#password-feedback"
+              wx-trigger="input delay:500ms"
+              wx-include="name,value"
+              required
+            />
+            <div id="password-feedback"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              placeholder="Confirm your password"
+              wx-send="validate-field"
+              wx-target="#confirmPassword-feedback"
+              wx-trigger="input delay:500ms"
+              wx-include="name,value"
+              required
+            />
+            <div id="confirmPassword-feedback"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="country">Country</label>
+            <select
+              id="country"
+              name="country"
+              wx-send="load-states"
+              wx-target="#state-container"
+              wx-trigger="change"
+              wx-include="value"
+              required
+            >
+              <option value="">Select your country</option>
+              <option value="us">United States</option>
+              <option value="ca">Canada</option>
+              <option value="uk">United Kingdom</option>
+              <option value="au">Australia</option>
+            </select>
+          </div>
+
+          <div id="state-container"></div>
+
+          <div class="dynamic-fields">
+            <h3>Skills</h3>
+            <div id="skills-container">
+              <div class="field-group">
+                <div class="form-group">
+                  <input
+                    type="text"
+                    name="skills[]"
+                    placeholder="Enter a skill"
+                  />
+                </div>
+                <button
+                  type="button"
+                  class="remove-field"
+                  wx-send="remove-skill"
+                  wx-target="this"
+                  wx-trigger="click"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              class="add-field"
+              wx-send="add-skill"
+              wx-target="#skills-container"
+              wx-trigger="click"
+            >
+              Add Skill
+            </button>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              wx-send="submit-form"
+              wx-target="#form-result"
+              wx-trigger="click"
+              wx-include="form"
+            >
+              Register
+            </button>
+            <button
+              type="button"
+              class="btn btn-secondary"
+              wx-send="reset-form"
+              wx-target="#registration-form"
+              wx-trigger="click"
+            >
+              Reset
+            </button>
+          </div>
+        </form>
+
+        <div id="form-result"></div>
+      </div>
     </div>
-  </div>
-</body>
+  </body>
 </html>
 ```
 
 ### Server Implementation
+
 ```javascript
-import { createExpressWSXServer } from "@wsx/express";
+import { createExpressWSXServer } from "@wsx-sh/express";
 import express from "express";
 
 const wsx = createExpressWSXServer();
 const app = wsx.getApp();
 
 // Mock database for validation
-const existingUsers = ['admin', 'user123', 'testuser'];
-const existingEmails = ['admin@example.com', 'user@test.com'];
+const existingUsers = ["admin", "user123", "testuser"];
+const existingEmails = ["admin@example.com", "user@test.com"];
 
 // Country/State data
 const countryStates = {
-  us: ['California', 'Texas', 'New York', 'Florida'],
-  ca: ['Ontario', 'Quebec', 'British Columbia', 'Alberta'],
-  uk: ['England', 'Scotland', 'Wales', 'Northern Ireland'],
-  au: ['New South Wales', 'Victoria', 'Queensland', 'Western Australia']
+  us: ["California", "Texas", "New York", "Florida"],
+  ca: ["Ontario", "Quebec", "British Columbia", "Alberta"],
+  uk: ["England", "Scotland", "Wales", "Northern Ireland"],
+  au: ["New South Wales", "Victoria", "Queensland", "Western Australia"],
 };
 
 // Field validation
 wsx.on("validate-field", async (request, connection) => {
   const { name, value } = request.data;
-  
+
   let isValid = true;
-  let message = '';
-  let fieldClass = '';
-  
+  let message = "";
+  let fieldClass = "";
+
   switch (name) {
-    case 'username':
+    case "username":
       if (!value || value.length < 3) {
         isValid = false;
-        message = 'Username must be at least 3 characters long';
+        message = "Username must be at least 3 characters long";
       } else if (existingUsers.includes(value.toLowerCase())) {
         isValid = false;
-        message = 'Username is already taken';
+        message = "Username is already taken";
       } else {
-        message = 'Username is available';
+        message = "Username is available";
       }
       break;
-      
-    case 'email':
+
+    case "email":
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!value || !emailRegex.test(value)) {
         isValid = false;
-        message = 'Please enter a valid email address';
+        message = "Please enter a valid email address";
       } else if (existingEmails.includes(value.toLowerCase())) {
         isValid = false;
-        message = 'Email is already registered';
+        message = "Email is already registered";
       } else {
-        message = 'Email is available';
+        message = "Email is available";
       }
       break;
-      
-    case 'password':
+
+    case "password":
       if (!value || value.length < 8) {
         isValid = false;
-        message = 'Password must be at least 8 characters long';
+        message = "Password must be at least 8 characters long";
       } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
         isValid = false;
-        message = 'Password must contain uppercase, lowercase, and number';
+        message = "Password must contain uppercase, lowercase, and number";
       } else {
-        message = 'Password strength: Good';
+        message = "Password strength: Good";
       }
       break;
-      
-    case 'confirmPassword':
+
+    case "confirmPassword":
       // We'd need to get the password value from the form
       // For now, just check if it's not empty
       if (!value) {
         isValid = false;
-        message = 'Please confirm your password';
+        message = "Please confirm your password";
       } else {
-        message = 'Password confirmation matches';
+        message = "Password confirmation matches";
       }
       break;
   }
-  
-  fieldClass = isValid ? 'success' : 'error';
-  const messageClass = isValid ? 'success-message' : 'error-message';
-  
+
+  fieldClass = isValid ? "success" : "error";
+  const messageClass = isValid ? "success-message" : "error-message";
+
   // Update form progress
   const progress = calculateFormProgress(request, connection);
-  
+
   return [
     {
       id: request.id,
       target: request.target,
-      html: `<div class="${messageClass}">${message}</div>`
+      html: `<div class="${messageClass}">${message}</div>`,
     },
     {
       id: request.id,
       target: `#${name}`,
-      html: `<input type="${name === 'password' || name === 'confirmPassword' ? 'password' : 'text'}" id="${name}" name="${name}" value="${value}" class="${fieldClass}" />`,
-      swap: "outerHTML"
+      html: `<input type="${
+        name === "password" || name === "confirmPassword" ? "password" : "text"
+      }" id="${name}" name="${name}" value="${value}" class="${fieldClass}" />`,
+      swap: "outerHTML",
     },
     {
       id: request.id,
       target: "#form-progress .progress-fill",
       html: `<div class="progress-fill" style="width: ${progress}%"></div>`,
-      swap: "outerHTML"
-    }
+      swap: "outerHTML",
+    },
   ];
 });
 
 // Calculate form completion progress
 function calculateFormProgress(request, connection) {
   // Mock calculation - in real app, track form state
-  const requiredFields = ['username', 'email', 'password', 'confirmPassword', 'country'];
+  const requiredFields = [
+    "username",
+    "email",
+    "password",
+    "confirmPassword",
+    "country",
+  ];
   const completedFields = Math.floor(Math.random() * 5) + 1; // Mock completion
   return Math.min((completedFields / requiredFields.length) * 100, 100);
 }
@@ -428,31 +463,31 @@ function calculateFormProgress(request, connection) {
 // Load states based on country
 wsx.on("load-states", async (request, connection) => {
   const country = request.data.value;
-  
+
   if (!country || !countryStates[country]) {
     return {
       id: request.id,
       target: request.target,
-      html: ''
+      html: "",
     };
   }
-  
+
   const statesHtml = `
     <div class="form-group">
       <label for="state">State/Province</label>
       <select id="state" name="state" required>
         <option value="">Select your state</option>
-        ${countryStates[country].map(state => 
-          `<option value="${state}">${state}</option>`
-        ).join('')}
+        ${countryStates[country]
+          .map((state) => `<option value="${state}">${state}</option>`)
+          .join("")}
       </select>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: statesHtml
+    html: statesHtml,
   };
 });
 
@@ -466,12 +501,12 @@ wsx.on("add-skill", async (request, connection) => {
       <button type="button" class="remove-field" wx-send="remove-skill" wx-target="this" wx-trigger="click">×</button>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
     html: skillFieldHtml,
-    swap: "beforeend"
+    swap: "beforeend",
   };
 });
 
@@ -480,58 +515,58 @@ wsx.on("remove-skill", async (request, connection) => {
   return {
     id: request.id,
     target: request.target,
-    html: '',
-    swap: "outerHTML"
+    html: "",
+    swap: "outerHTML",
   };
 });
 
 // Submit form
 wsx.on("submit-form", async (request, connection) => {
   const formData = request.data;
-  
+
   // Validate all fields
   const errors = [];
-  
+
   if (!formData.username || formData.username.length < 3) {
-    errors.push('Username must be at least 3 characters long');
+    errors.push("Username must be at least 3 characters long");
   }
-  
+
   if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-    errors.push('Please enter a valid email address');
+    errors.push("Please enter a valid email address");
   }
-  
+
   if (!formData.password || formData.password.length < 8) {
-    errors.push('Password must be at least 8 characters long');
+    errors.push("Password must be at least 8 characters long");
   }
-  
+
   if (formData.password !== formData.confirmPassword) {
-    errors.push('Passwords do not match');
+    errors.push("Passwords do not match");
   }
-  
+
   if (!formData.country) {
-    errors.push('Please select your country');
+    errors.push("Please select your country");
   }
-  
+
   if (errors.length > 0) {
     const errorHtml = `
       <div class="error-message">
         <h3>Please fix the following errors:</h3>
         <ul>
-          ${errors.map(error => `<li>${error}</li>`).join('')}
+          ${errors.map((error) => `<li>${error}</li>`).join("")}
         </ul>
       </div>
     `;
-    
+
     return {
       id: request.id,
       target: request.target,
-      html: errorHtml
+      html: errorHtml,
     };
   }
-  
+
   // Simulate registration process
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+
   const successHtml = `
     <div class="success-message">
       <h3>Registration Successful!</h3>
@@ -539,11 +574,11 @@ wsx.on("submit-form", async (request, connection) => {
       <p>A confirmation email has been sent to ${formData.email}.</p>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: successHtml
+    html: successHtml,
   };
 });
 
@@ -668,64 +703,65 @@ wsx.on("reset-form", async (request, connection) => {
       </div>
     </form>
   `;
-  
+
   return [
     {
       id: request.id,
       target: request.target,
-      html: resetFormHtml
+      html: resetFormHtml,
     },
     {
       id: request.id,
       target: "#form-result",
-      html: ''
+      html: "",
     },
     {
       id: request.id,
       target: "#form-progress .progress-fill",
       html: `<div class="progress-fill" style="width: 0%"></div>`,
-      swap: "outerHTML"
-    }
+      swap: "outerHTML",
+    },
   ];
 });
 
-app.use(express.static('public'));
+app.use(express.static("public"));
 app.listen(3000, () => {
-  console.log('Forms server running on http://localhost:3000');
+  console.log("Forms server running on http://localhost:3000");
 });
 ```
 
 ## Multi-Step Form
 
 ### Step Navigation
+
 ```javascript
 // Multi-step form handler
-const formSteps = ['personal', 'contact', 'preferences', 'review'];
+const formSteps = ["personal", "contact", "preferences", "review"];
 
 wsx.on("navigate-step", async (request, connection) => {
   const { step, direction } = request.data;
   const currentStepIndex = formSteps.indexOf(step);
-  
+
   let nextStepIndex;
-  if (direction === 'next') {
+  if (direction === "next") {
     nextStepIndex = Math.min(currentStepIndex + 1, formSteps.length - 1);
   } else {
     nextStepIndex = Math.max(currentStepIndex - 1, 0);
   }
-  
+
   const nextStep = formSteps[nextStepIndex];
   const stepHtml = await generateStepHtml(nextStep);
-  
+
   return {
     id: request.id,
     target: "#form-step",
-    html: stepHtml
+    html: stepHtml,
   };
 });
 
 async function generateStepHtml(step) {
   switch (step) {
-    case 'personal':
+    case "personal":
       return `
         <div class="step-content">
           <h2>Personal Information</h2>
@@ -743,8 +779,8 @@ async function generateStepHtml(step) {
           </div>
         </div>
       `;
-      
-    case 'contact':
+
+    case "contact":
       return `
         <div class="step-content">
           <h2>Contact Information</h2>
@@ -762,8 +798,8 @@ async function generateStepHtml(step) {
           </div>
         </div>
       `;
-      
-    case 'preferences':
+
+    case "preferences":
       return `
         <div class="step-content">
           <h2>Preferences</h2>
@@ -784,8 +820,8 @@ async function generateStepHtml(step) {
           </div>
         </div>
       `;
-      
-    case 'review':
+
+    case "review":
       return `
         <div class="step-content">
           <h2>Review Your Information</h2>
@@ -810,19 +846,23 @@ async function generateStepHtml(step) {
 ## File Upload Form
 
 ### File Upload Handler
+
 ```javascript
-import multer from 'multer';
-import path from 'path';
+import multer from "multer";
+import path from "path";
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, "uploads/");
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
+  },
 });
 
 const upload = multer({
@@ -830,35 +870,37 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = allowedTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
     const mimetype = allowedTypes.test(file.mimetype);
-    
+
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only images and documents are allowed'));
+      cb(new Error("Only images and documents are allowed"));
     }
-  }
+  },
 });
 
 // File upload endpoint
-app.post('/api/upload', upload.single('file'), (req, res) => {
+app.post("/api/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
+    return res.status(400).json({ error: "No file uploaded" });
   }
-  
+
   res.json({
     filename: req.file.filename,
     originalName: req.file.originalname,
     size: req.file.size,
-    url: `/uploads/${req.file.filename}`
+    url: `/uploads/${req.file.filename}`,
   });
 });
 
 // File upload progress (WebSocket)
 wsx.on("upload-progress", async (request, connection) => {
   const { filename, progress } = request.data;
-  
+
   return {
     id: request.id,
     target: "#upload-progress",
@@ -869,7 +911,7 @@ wsx.on("upload-progress", async (request, connection) => {
         </div>
         <div class="progress-text">${filename} - ${progress}%</div>
       </div>
-    `
+    `,
   };
 });
 ```
@@ -877,6 +919,7 @@ wsx.on("upload-progress", async (request, connection) => {
 ## Real-Time Form Collaboration
 
 ### Collaborative Form Editing
+
 ```javascript
 // Track form collaborators
 const formCollaborators = new Map();
@@ -884,41 +927,46 @@ const formCollaborators = new Map();
 wsx.on("join-form-collaboration", async (request, connection) => {
   const { formId } = request.data;
   const user = connection.sessionData?.user;
-  
+
   if (!user) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Please log in to collaborate</div>`
+      html: `<div class="error">Please log in to collaborate</div>`,
     };
   }
-  
+
   // Add user to collaborators
   if (!formCollaborators.has(formId)) {
     formCollaborators.set(formId, new Set());
   }
   formCollaborators.get(formId).add(connection.id);
-  
+
   connection.sessionData.formId = formId;
-  
+
   // Notify other collaborators
   const otherCollaborators = Array.from(formCollaborators.get(formId))
-    .filter(id => id !== connection.id)
-    .map(id => wsx.getConnection(id))
+    .filter((id) => id !== connection.id)
+    .map((id) => wsx.getConnection(id))
     .filter(Boolean);
-  
-  otherCollaborators.forEach(conn => {
-    wsx.sendToConnection(conn.id, "#collaborators", `
+
+  otherCollaborators.forEach((conn) => {
+    wsx.sendToConnection(
+      conn.id,
+      "#collaborators",
+      `
       <div class="collaborator-joined">
         ${user.name} joined the form
       </div>
-    `, "beforeend");
+    `,
+      "beforeend"
+    );
   });
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: `<div>Joined collaborative form editing</div>`
+    html: `<div>Joined collaborative form editing</div>`,
   };
 });
 
@@ -926,27 +974,31 @@ wsx.on("field-focus", async (request, connection) => {
   const { fieldName } = request.data;
   const user = connection.sessionData?.user;
   const formId = connection.sessionData?.formId;
-  
+
   if (!formId || !user) return;
-  
+
   // Notify other collaborators about field focus
   const otherCollaborators = Array.from(formCollaborators.get(formId) || [])
-    .filter(id => id !== connection.id)
-    .map(id => wsx.getConnection(id))
+    .filter((id) => id !== connection.id)
+    .map((id) => wsx.getConnection(id))
     .filter(Boolean);
-  
-  otherCollaborators.forEach(conn => {
-    wsx.sendToConnection(conn.id, `#${fieldName}-indicator`, `
+
+  otherCollaborators.forEach((conn) => {
+    wsx.sendToConnection(
+      conn.id,
+      `#${fieldName}-indicator`,
+      `
       <div class="field-indicator">
         ${user.name} is editing this field
       </div>
-    `);
+    `
+    );
   });
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: ''
+    html: "",
   };
 });
 ```
@@ -954,68 +1006,73 @@ wsx.on("field-focus", async (request, connection) => {
 ## Form Analytics
 
 ### Form Performance Tracking
+
 ```javascript
 // Track form analytics
 const formAnalytics = {
   submissions: new Map(),
   fieldInteractions: new Map(),
-  abandonmentPoints: new Map()
+  abandonmentPoints: new Map(),
 };
 
 wsx.on("track-field-interaction", async (request, connection) => {
   const { fieldName, action, value } = request.data;
   const sessionId = connection.sessionData?.sessionId || connection.id;
-  
+
   // Track field interactions
   const key = `${fieldName}:${action}`;
   const count = formAnalytics.fieldInteractions.get(key) || 0;
   formAnalytics.fieldInteractions.set(key, count + 1);
-  
+
   // Track user session
   if (!formAnalytics.submissions.has(sessionId)) {
     formAnalytics.submissions.set(sessionId, {
       startTime: Date.now(),
       interactions: [],
-      completed: false
+      completed: false,
     });
   }
-  
+
   const session = formAnalytics.submissions.get(sessionId);
   session.interactions.push({
     field: fieldName,
     action: action,
     value: value,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: '' // No visual feedback needed
+    html: "", // No visual feedback needed
   };
 });
 
 wsx.on("get-form-analytics", async (request, connection) => {
   const user = connection.sessionData?.user;
-  
+
   if (!user?.isAdmin) {
     return {
       id: request.id,
       target: request.target,
-      html: `<div class="error">Admin access required</div>`
+      html: `<div class="error">Admin access required</div>`,
     };
   }
-  
+
   const totalSessions = formAnalytics.submissions.size;
-  const completedSessions = Array.from(formAnalytics.submissions.values())
-    .filter(session => session.completed).length;
-  
-  const completionRate = totalSessions > 0 ? (completedSessions / totalSessions * 100).toFixed(1) : 0;
-  
+  const completedSessions = Array.from(
+    formAnalytics.submissions.values()
+  ).filter((session) => session.completed).length;
+
+  const completionRate =
+    totalSessions > 0
+      ? ((completedSessions / totalSessions) * 100).toFixed(1)
+      : 0;
+
   const topInteractions = Array.from(formAnalytics.fieldInteractions.entries())
-    .sort(([,a], [,b]) => b - a)
+    .sort(([, a], [, b]) => b - a)
     .slice(0, 10);
-  
+
   const analyticsHtml = `
     <div class="form-analytics">
       <h3>Form Analytics</h3>
@@ -1036,17 +1093,21 @@ wsx.on("get-form-analytics", async (request, connection) => {
       
       <h4>Top Field Interactions</h4>
       <ul>
-        ${topInteractions.map(([field, count]) => `
+        ${topInteractions
+          .map(
+            ([field, count]) => `
           <li>${field}: ${count} interactions</li>
-        `).join('')}
+        `
+          )
+          .join("")}
       </ul>
     </div>
   `;
-  
+
   return {
     id: request.id,
     target: request.target,
-    html: analyticsHtml
+    html: analyticsHtml,
   };
 });
 ```
