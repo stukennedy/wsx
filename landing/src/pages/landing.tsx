@@ -29,7 +29,11 @@ export const landingPage = (c: Context) => {
           <a href="#demo" class="cta-button">
             Try Live Demo
           </a>
-          <a href="/docs" class="cta-button secondary">
+          <a
+            href="https://docs.wsx.sh"
+            target="_blank"
+            class="cta-button secondary"
+          >
             Read Docs
           </a>
         </div>
@@ -186,7 +190,9 @@ export const landingPage = (c: Context) => {
       <footer class="footer">
         <div class="footer-content">
           <div class="footer-links">
-            <a href="/docs">Documentation</a>
+            <a href="https://docs.wsx.sh" target="_blank">
+              Documentation
+            </a>
             <a href="https://github.com/stukennedy/wsx" target="_blank">
               GitHub
             </a>

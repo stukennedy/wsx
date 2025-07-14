@@ -10,49 +10,55 @@ WSX is designed with a modular architecture that separates concerns and enables 
 ## Core Components
 
 ```mermaid
-graph TB
-    subgraph "Browser Environment"
-        Client[User Interaction]
+flowchart TD
+    subgraph Browser["🌐 Browser Environment"]
+        UI[User Interaction]
         WSXClient[WSX Client Library]
         DOM[DOM Elements]
         
-        Client --> WSXClient
+        UI --> WSXClient
         WSXClient --> DOM
     end
     
-    subgraph "Server Environment"
+    subgraph Server["🖥️ Server Environment"]
         WSXServer[WSX Server Core]
         Handlers[Request Handlers]
         Adapter[Framework Adapter]
-        Framework[Web Framework<br/>Express/Hono/Custom]
+        Framework[Express/Hono/Custom]
         
         WSXServer --> Handlers
         WSXServer --> Adapter
         Adapter --> Framework
     end
     
-    subgraph "Communication Layer"
-        WebSocket[WebSocket Connection]
+    WSXClient <-->|WebSocket| WSXServer
+    
+    subgraph Flow["📋 Request Flow"]
+        direction LR
+        A[DOM Event] --> B[Process Triggers]
+        B --> C[Build Request]
+        C --> D[Send WebSocket]
+        D --> E[Route Handler]
+        E --> F[Generate Response]
+        F --> G[Update DOM]
+        F --> H[Broadcast OOB]
     end
     
-    WSXClient <--> WebSocket
-    WebSocket <--> WSXServer
-    
-    subgraph "Request Flow"
-        direction TB
-        A[1. DOM Event] --> B[2. Process Triggers]
-        B --> C[3. Build Request]
-        C --> D[4. Send via WebSocket]
-        D --> E[5. Route to Handler]
-        E --> F[6. Process & Respond]
-        F --> G[7. Update DOM]
-        F --> H[8. Broadcast OOB]
-    end
-    
-    style WSXClient fill:#e1f5fe
-    style WSXServer fill:#f3e5f5
-    style WebSocket fill:#fff3e0
-    style Handlers fill:#e8f5e8
+    style UI fill:#4fc3f7,stroke:#0277bd,stroke-width:2px,color:#000
+    style WSXClient fill:#42a5f5,stroke:#1565c0,stroke-width:2px,color:#fff
+    style DOM fill:#29b6f6,stroke:#0277bd,stroke-width:2px,color:#000
+    style WSXServer fill:#ab47bc,stroke:#7b1fa2,stroke-width:2px,color:#fff
+    style Handlers fill:#66bb6a,stroke:#388e3c,stroke-width:2px,color:#000
+    style Adapter fill:#9ccc65,stroke:#689f38,stroke-width:2px,color:#000
+    style Framework fill:#ffb74d,stroke:#f57c00,stroke-width:2px,color:#000
+    style A fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
+    style B fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
+    style C fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
+    style D fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
+    style E fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
+    style F fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
+    style G fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
+    style H fill:#90caf9,stroke:#1976d2,stroke-width:2px,color:#000
 ```
 
 ### WSX Client

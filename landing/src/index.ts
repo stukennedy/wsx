@@ -1,17 +1,16 @@
 import { createHonoWSXServer } from "@wsx/hono";
 import { html, WSXConnection } from "@wsx/core";
 import { landingPage } from "./pages/landing";
-import { docsPage } from "./pages/docs";
 import { applyLayouts } from "./layout";
 
 const wsx = createHonoWSXServer({
-  websocketPath: '/landing-ws',
+  websocketPath: "/landing-ws",
   onConnection: (connection: WSXConnection) => {
-    console.log('Landing page connection established:', connection.id);
+    console.log("Landing page connection established:", connection.id);
   },
   onDisconnection: (connection: WSXConnection) => {
-    console.log('Landing page connection closed:', connection.id);
-  }
+    console.log("Landing page connection closed:", connection.id);
+  },
 });
 const app = wsx.getApp();
 
@@ -19,7 +18,6 @@ applyLayouts(app);
 
 // Mount our routes
 app.get("/", landingPage);
-app.get("/docs", docsPage);
 
 // WSX Handlers for landing page interactions
 wsx.on("animate-hero", async (request: any, connection: any) => {

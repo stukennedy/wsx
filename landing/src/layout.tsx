@@ -32,7 +32,9 @@ const RootLayout = jsxRenderer(({ children }) => (
               <a href="#demo">Demo</a>
             </li>
             <li>
-              <a href="/docs">Docs</a>
+              <a href="https://docs.wsx.sh" target="_blank">
+                Docs
+              </a>
             </li>
             <li>
               <a href="https://github.com/stukennedy/wsx" target="_blank">
