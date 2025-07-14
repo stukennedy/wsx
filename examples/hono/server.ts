@@ -1,12 +1,7 @@
-import { WSXServer } from "./wsx-server";
+import { createHonoWSXServer } from "@wsx/hono";
 
-// Example usage and helper functions
-export function createWSXServer() {
-  return new WSXServer();
-}
-
-// Example server implementation
-const wsx = createWSXServer();
+// Example server implementation using the new library structure
+const wsx = createHonoWSXServer();
 const app = wsx.getApp();
 
 // Global action counter for OOB demos

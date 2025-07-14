@@ -1,0 +1,28 @@
+{
+  "name": "@wsx/client",
+  "version": "1.0.0",
+  "description": "Client-side JavaScript library for WSX WebSocket connections",
+  "main": "wsx.js",
+  "files": [
+    "wsx.js"
+  ],
+  "scripts": {
+    "build": "echo 'Client is already built'",
+    "dev": "echo 'No dev needed for client'",
+    "clean": "echo 'Nothing to clean for client'",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "websocket",
+    "client",
+    "browser",
+    "wsx"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/wsx.git",
+    "directory": "packages/client"
+  }
+}

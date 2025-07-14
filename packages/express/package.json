@@ -1,0 +1,52 @@
+{
+  "name": "@wsx/express",
+  "version": "1.0.0",
+  "description": "Express adapter for WSX - WebSocket server for Node.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "clean": "rm -rf dist",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "websocket",
+    "express",
+    "nodejs",
+    "wsx"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@wsx/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "express": ">=4.0.0",
+    "ws": ">=8.0.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "express": "^4.18.0",
+    "ws": "^8.0.0",
+    "@types/express": "^4.17.0",
+    "@types/ws": "^8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/wsx.git",
+    "directory": "packages/express"
+  }
+}
