@@ -9,11 +9,51 @@ WSX is designed with a modular architecture that separates concerns and enables 
 
 ## Core Components
 
-<img
-  src="/images/architecture-diagram.png"
-  alt="WSX Architecture Diagram"
-  className="rounded-lg border"
-/>
+```mermaid
+graph TB
+    subgraph "Browser Environment"
+        Client[User Interaction]
+        WSXClient[WSX Client Library]
+        DOM[DOM Elements]
+        
+        Client --> WSXClient
+        WSXClient --> DOM
+    end
+    
+    subgraph "Server Environment"
+        WSXServer[WSX Server Core]
+        Handlers[Request Handlers]
+        Adapter[Framework Adapter]
+        Framework[Web Framework<br/>Express/Hono/Custom]
+        
+        WSXServer --> Handlers
+        WSXServer --> Adapter
+        Adapter --> Framework
+    end
+    
+    subgraph "Communication Layer"
+        WebSocket[WebSocket Connection]
+    end
+    
+    WSXClient <--> WebSocket
+    WebSocket <--> WSXServer
+    
+    subgraph "Request Flow"
+        direction TB
+        A[1. DOM Event] --> B[2. Process Triggers]
+        B --> C[3. Build Request]
+        C --> D[4. Send via WebSocket]
+        D --> E[5. Route to Handler]
+        E --> F[6. Process & Respond]
+        F --> G[7. Update DOM]
+        F --> H[8. Broadcast OOB]
+    end
+    
+    style WSXClient fill:#e1f5fe
+    style WSXServer fill:#f3e5f5
+    style WebSocket fill:#fff3e0
+    style Handlers fill:#e8f5e8
+```
 
 ### WSX Client
 

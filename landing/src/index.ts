@@ -1,10 +1,21 @@
 import { createHonoWSXServer } from "@wsx/hono";
-import { html } from "@wsx/core";
+import { html, WSXConnection } from "@wsx/core";
 import { landingPage } from "./pages/landing";
 import { docsPage } from "./pages/docs";
+import { applyLayouts } from "./layout";
 
-const wsx = createHonoWSXServer();
+const wsx = createHonoWSXServer({
+  websocketPath: '/landing-ws',
+  onConnection: (connection: WSXConnection) => {
+    console.log('Landing page connection established:', connection.id);
+  },
+  onDisconnection: (connection: WSXConnection) => {
+    console.log('Landing page connection closed:', connection.id);
+  }
+});
 const app = wsx.getApp();
+
+applyLayouts(app);
 
 // Mount our routes
 app.get("/", landingPage);

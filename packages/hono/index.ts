@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { upgradeWebSocket } from 'hono/cloudflare-workers';
-import { WSXServer, WSXServerAdapter, WSXConnection } from '@wsx/core';
+import { WSXServer, WSXServerAdapter, WSXConnection, WSXServerConfig } from '@wsx/core';
 
 export class HonoAdapter implements WSXServerAdapter {
   private app: Hono;
@@ -78,7 +78,7 @@ export function createHonoAdapter(): HonoAdapter {
 }
 
 // Convenience function to create a WSX server with Hono
-export function createHonoWSXServer() {
+export function createHonoWSXServer(config?: WSXServerConfig) {
   const adapter = createHonoAdapter();
-  return new WSXServer(adapter);
+  return new WSXServer(adapter, config);
 }

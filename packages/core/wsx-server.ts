@@ -1,18 +1,21 @@
-import { WSXRequest, WSXResponse, WSXConnection, WSXHandler, WSXServerAdapter } from './types.js';
+import { WSXRequest, WSXResponse, WSXConnection, WSXHandler, WSXServerAdapter, WSXServerConfig } from './types.js';
 
 export class WSXServer {
   private connections = new Map<string, WSXConnection>();
   private handlers = new Map<string, WSXHandler>();
   private connectionCounter = 0;
   private adapter: WSXServerAdapter;
+  private config: WSXServerConfig;
 
-  constructor(adapter: WSXServerAdapter) {
+  constructor(adapter: WSXServerAdapter, config?: WSXServerConfig) {
     this.adapter = adapter;
+    this.config = config || {};
     this.setupWebSocket();
   }
 
   private setupWebSocket() {
-    this.adapter.setupWebSocket('/ws', async (data: string, connection: WSXConnection) => {
+    const websocketPath = this.config.websocketPath || '/ws';
+    this.adapter.setupWebSocket(websocketPath, async (data: string, connection: WSXConnection) => {
       try {
         const request: WSXRequest = JSON.parse(data);
         console.log('Received message:', request);
@@ -21,6 +24,11 @@ export class WSXServer {
         if (!this.connections.has(connection.id)) {
           this.connections.set(connection.id, connection);
           console.log(`WSX connection registered: ${connection.id}`);
+          
+          // Call config callback first, then adapter callback
+          if (this.config.onConnection) {
+            this.config.onConnection(connection);
+          }
           
           if (this.adapter.onConnection) {
             this.adapter.onConnection(connection);
@@ -161,6 +169,12 @@ export class WSXServer {
     const connection = this.connections.get(connectionId);
     if (connection) {
       this.connections.delete(connectionId);
+      
+      // Call config callback first, then adapter callback
+      if (this.config.onDisconnection) {
+        this.config.onDisconnection(connection);
+      }
+      
       if (this.adapter.onDisconnection) {
         this.adapter.onDisconnection(connection);
       }

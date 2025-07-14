@@ -8,12 +8,3 @@ ENVIRONMENT = "production"
 [[routes]]
 pattern = "wsx.sh"
 zone_name = "wsx.sh"
-
-[[routes]]
-pattern = "www.wsx.sh"
-zone_name = "wsx.sh"
-
-[build]
-command = "echo 'No build step required'"
-
-

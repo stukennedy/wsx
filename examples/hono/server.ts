@@ -2,7 +2,12 @@ import { createHonoWSXServer } from "@wsx/hono";
 import { html } from "@wsx/core";
 
 // Example server implementation using the new library structure
-const wsx = createHonoWSXServer();
+const wsx = createHonoWSXServer({
+  websocketPath: '/example-ws',
+  onConnection: (connection) => {
+    console.log('Example connection established:', connection.id);
+  }
+});
 const app = wsx.getApp();
 
 // Global action counter for OOB demos
@@ -19,7 +24,7 @@ app.get("/", (c) => {
         <script src="/wsx.js"></script>
       </head>
       <body class="bg-gray-100 p-8">
-        <div wx-config='{"url": "ws://localhost:8787/ws", "debug": true}'>
+        <div wx-config='{"url": "ws://localhost:8787/example-ws", "debug": true}'>
           <div class="flex justify-between items-center mb-4">
             <h1 class="text-2xl font-bold">WSX Example</h1>
 

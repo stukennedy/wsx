@@ -8,11 +8,12 @@ export type {
   WSXConnection,
   WSXHandler,
   WSXServerAdapter,
+  WSXServerConfig,
 } from "./types";
 
 // Convenience function to create a WSX server with an adapter
-export function createWSXServer(adapter: import("./types").WSXServerAdapter) {
-  return new WSXServer(adapter);
+export function createWSXServer(adapter: import("./types").WSXServerAdapter, config?: import("./types").WSXServerConfig) {
+  return new WSXServer(adapter, config);
 }
 
 export { html } from "./utils";

@@ -42,3 +42,9 @@ export interface WSXServerAdapter {
   onDisconnection?(connection: WSXConnection): void;
   getApp(): any;
 }
+
+export interface WSXServerConfig {
+  websocketPath?: string;
+  onConnection?(connection: WSXConnection): void;
+  onDisconnection?(connection: WSXConnection): void;
+}

@@ -1,7 +1,7 @@
 import express from 'express';
 import { WebSocket, WebSocketServer } from 'ws';
 import { IncomingMessage } from 'http';
-import { WSXServer, WSXServerAdapter, WSXConnection } from '@wsx/core';
+import { WSXServer, WSXServerAdapter, WSXConnection, WSXServerConfig } from '@wsx/core';
 
 export class ExpressAdapter implements WSXServerAdapter {
   private app: express.Application;
@@ -93,7 +93,7 @@ export function createExpressAdapter(): ExpressAdapter {
 }
 
 // Convenience function to create a WSX server with Express
-export function createExpressWSXServer() {
+export function createExpressWSXServer(config?: WSXServerConfig) {
   const adapter = createExpressAdapter();
-  return new WSXServer(adapter);
+  return new WSXServer(adapter, config);
 }

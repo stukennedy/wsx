@@ -37,14 +37,9 @@
   ],
   "anchors": [
     {
-      "name": "Documentation",
-      "icon": "book-open-cover",
-      "url": "introduction"
-    },
-    {
       "name": "Community",
-      "icon": "slack",
-      "url": "https://discord.gg/wsx"
+      "icon": "discord",
+      "url": "https://discord.gg/6zhUq6Mg"
     },
     {
       "name": "GitHub",
