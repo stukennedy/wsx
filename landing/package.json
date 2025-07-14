@@ -1,0 +1,23 @@
+{
+  "name": "wsx-landing",
+  "version": "1.0.0",
+  "description": "Retro landing page for WSX framework",
+  "type": "module",
+  "scripts": {
+    "predev": "cp ../packages/client/wsx.js assets/wsx.js",
+    "dev": "wrangler dev --assets=./assets",
+    "predeploy": "cp ../packages/client/wsx.js assets/wsx.js",
+    "deploy": "wrangler deploy --assets=./assets",
+    "build": "wrangler deploy --dry-run"
+  },
+  "dependencies": {
+    "@wsx/core": "../packages/core",
+    "@wsx/client": "../packages/client",
+    "@wsx/server": "../packages/server",
+    "hono": "^3.12.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.24.3",
+    "@cloudflare/workers-types": "^4.0.0"
+  }
+}
