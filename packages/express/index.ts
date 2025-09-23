@@ -1,19 +1,24 @@
-import express from "express";
-import { WebSocket, WebSocketServer } from "ws";
-import { IncomingMessage } from "http";
+import express from 'express';
+import { WebSocket, WebSocketServer } from 'ws';
+import { IncomingMessage } from 'http';
 import {
   WSXServer,
   WSXServerAdapter,
   WSXConnection,
   WSXServerConfig,
-  WSXBinaryData,
-} from "../core";
+  WSXBinaryData
+} from '../core';
 
 export class ExpressAdapter implements WSXServerAdapter {
   private app: express.Application;
   private wss?: WebSocketServer;
   private wsToConnectionId = new WeakMap<WebSocket, string>();
   private connectionCounter = 0;
+  private websocketPath?: string;
+  private onMessageHandler?: (
+    data: string | WSXBinaryData,
+    connection: WSXConnection
+  ) => void;
 
   constructor() {
     this.app = express();
@@ -23,10 +28,13 @@ export class ExpressAdapter implements WSXServerAdapter {
     path: string,
     onMessage: (data: string | WSXBinaryData, connection: WSXConnection) => void
   ): void {
+    this.websocketPath = path;
+    this.onMessageHandler = onMessage;
+
     // Create WebSocket server
     this.wss = new WebSocketServer({ noServer: true });
 
-    this.wss.on("connection", (ws: WebSocket, request: IncomingMessage) => {
+    this.wss.on('connection', (ws: WebSocket, request: IncomingMessage) => {
       const connectionId = `conn_${++this.connectionCounter}`;
       this.wsToConnectionId.set(ws, connectionId);
 
@@ -36,7 +44,7 @@ export class ExpressAdapter implements WSXServerAdapter {
         send: (data: string | WSXBinaryData) => {
           try {
             if (ws.readyState === WebSocket.OPEN) {
-              if (typeof data === "string") {
+              if (typeof data === 'string') {
                 ws.send(data);
               } else if (data instanceof ArrayBuffer) {
                 ws.send(data);
@@ -47,19 +55,19 @@ export class ExpressAdapter implements WSXServerAdapter {
               }
             }
           } catch (error) {
-            console.error("Error sending data:", error);
+            console.error('Error sending data:', error);
           }
         },
         close: () => {
           try {
             ws.close();
           } catch (error) {
-            console.error("Error closing connection:", error);
+            console.error('Error closing connection:', error);
           }
-        },
+        }
       };
 
-      ws.on("message", async (data, isBinary) => {
+      ws.on('message', async (data, isBinary) => {
         let payload: string | WSXBinaryData;
 
         if (isBinary) {
@@ -69,7 +77,7 @@ export class ExpressAdapter implements WSXServerAdapter {
             payload = data as WSXBinaryData;
           }
         } else {
-          if (typeof data === "string") {
+          if (typeof data === 'string') {
             payload = data;
           } else if (Array.isArray(data)) {
             payload = Buffer.concat(data).toString();
@@ -78,10 +86,12 @@ export class ExpressAdapter implements WSXServerAdapter {
           }
         }
 
-        await onMessage(payload, connection);
+        if (this.onMessageHandler) {
+          await this.onMessageHandler(payload, connection);
+        }
       });
 
-      ws.on("close", () => {
+      ws.on('close', () => {
         this.wsToConnectionId.delete(ws);
         console.log(`WSX connection closed: ${connectionId}`);
         if (this.onDisconnection) {
@@ -89,25 +99,23 @@ export class ExpressAdapter implements WSXServerAdapter {
         }
       });
 
-      ws.on("error", (error) => {
-        console.error("WSX WebSocket error:", error);
+      ws.on('error', (error) => {
+        console.error('WSX WebSocket error:', error);
       });
 
       if (this.onConnection) {
         this.onConnection(connection);
       }
     });
+  }
 
-    // Handle upgrade requests
-    this.app.use((req, res, next) => {
-      if (req.url === path && req.headers.upgrade === "websocket") {
-        this.wss!.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws) => {
-          this.wss!.emit("connection", ws, req);
-        });
-      } else {
-        next();
-      }
-    });
+  // Method to handle upgrade requests - should be called from the HTTP server
+  handleUpgrade(req: IncomingMessage, socket: any, head: Buffer): void {
+    if (this.wss && this.websocketPath && req.url === this.websocketPath) {
+      this.wss.handleUpgrade(req, socket, head, (ws) => {
+        this.wss!.emit('connection', ws, req);
+      });
+    }
   }
 
   onConnection?(connection: WSXConnection): void {

@@ -11,7 +11,7 @@ import {
   WSXJSONSendOptions,
   WSXStreamHandler,
   WSXStreamMessage,
-  WSXStreamSendOptions,
+  WSXStreamSendOptions
 } from './types.js';
 
 const STREAM_MESSAGE_TYPE = 'stream';
@@ -40,6 +40,10 @@ export class WSXServer {
     this.adapter = adapter;
     this.config = config || {};
     this.setupWebSocket();
+  }
+
+  getAdapter(): WSXServerAdapter {
+    return this.adapter;
   }
 
   private setupWebSocket() {
@@ -106,13 +110,10 @@ export class WSXServer {
 
   private normalizeJsonEnvelope(envelope: WSXJSONEnvelope): WSXJSONMessage {
     return {
-      id:
-        typeof envelope.id === 'string'
-          ? envelope.id
-          : this.generateJsonId(),
+      id: typeof envelope.id === 'string' ? envelope.id : this.generateJsonId(),
       channel: envelope.channel,
       data: envelope.data,
-      metadata: envelope.metadata,
+      metadata: envelope.metadata
     };
   }
 
@@ -157,8 +158,7 @@ export class WSXServer {
     connection: WSXConnection
   ) {
     const handler =
-      this.streamHandlers.get(message.channel) ??
-      this.streamHandlers.get('');
+      this.streamHandlers.get(message.channel) ?? this.streamHandlers.get('');
 
     if (!handler) {
       console.warn(`No stream handler found for channel: ${message.channel}`);
@@ -172,10 +172,7 @@ export class WSXServer {
     }
   }
 
-  private async handleJson(
-    message: WSXJSONMessage,
-    connection: WSXConnection
-  ) {
+  private async handleJson(message: WSXJSONMessage, connection: WSXConnection) {
     const handler =
       this.jsonHandlers.get(message.channel) ?? this.jsonHandlers.get('');
 
@@ -220,7 +217,7 @@ export class WSXServer {
         html: `<div class="error">An error occurred: ${
           error instanceof Error ? error.message : String(error)
         }</div>`,
-        swap: 'innerHTML',
+        swap: 'innerHTML'
       };
 
       this.sendResponse(errorResponse, connection);
@@ -235,10 +232,7 @@ export class WSXServer {
     }
   }
 
-  private sendJsonMessage(
-    connection: WSXConnection,
-    message: WSXJSONMessage
-  ) {
+  private sendJsonMessage(connection: WSXConnection, message: WSXJSONMessage) {
     try {
       connection.send(this.encodeJsonMessage(message));
     } catch (error) {
@@ -274,7 +268,7 @@ export class WSXServer {
       id: options?.id || this.generateJsonId(),
       channel,
       data,
-      metadata: options?.metadata,
+      metadata: options?.metadata
     };
   }
 
@@ -285,7 +279,7 @@ export class WSXServer {
     return {
       id: options?.id || this.generateStreamId(),
       channel,
-      metadata: options?.metadata,
+      metadata: options?.metadata
     };
   }
 
@@ -296,7 +290,7 @@ export class WSXServer {
     const headerObject: Record<string, any> = {
       type: STREAM_MESSAGE_TYPE,
       id: message.id,
-      channel: message.channel,
+      channel: message.channel
     };
 
     if (message.metadata !== undefined) {
@@ -305,7 +299,9 @@ export class WSXServer {
 
     const headerBytes = this.textEncoder.encode(JSON.stringify(headerObject));
     const payloadBytes = this.toUint8Array(payload);
-    const buffer = new ArrayBuffer(4 + headerBytes.byteLength + payloadBytes.byteLength);
+    const buffer = new ArrayBuffer(
+      4 + headerBytes.byteLength + payloadBytes.byteLength
+    );
     const view = new DataView(buffer);
     view.setUint32(0, headerBytes.byteLength, false);
 
@@ -321,7 +317,7 @@ export class WSXServer {
       type: JSON_MESSAGE_TYPE,
       id: message.id,
       channel: message.channel,
-      data: message.data,
+      data: message.data
     };
 
     if (message.metadata !== undefined) {
@@ -331,9 +327,10 @@ export class WSXServer {
     return JSON.stringify(envelope);
   }
 
-  private decodeStreamMessage(
-    data: WSXBinaryData
-  ): { message: WSXStreamMessage; payload: Uint8Array } {
+  private decodeStreamMessage(data: WSXBinaryData): {
+    message: WSXStreamMessage;
+    payload: Uint8Array;
+  } {
     const bytes = this.toUint8Array(data);
 
     if (bytes.byteLength < 4) {
@@ -367,9 +364,9 @@ export class WSXServer {
       message: {
         id: header.id,
         channel: header.channel,
-        metadata: header.metadata,
+        metadata: header.metadata
       },
-      payload,
+      payload
     };
   }
 
@@ -459,7 +456,7 @@ export class WSXServer {
       id: `broadcast_${Date.now()}`,
       target,
       html,
-      swap: swap || 'innerHTML',
+      swap: swap || 'innerHTML'
     };
 
     for (const connection of this.connections.values()) {
@@ -493,7 +490,7 @@ export class WSXServer {
         id: `direct_${Date.now()}`,
         target,
         html,
-        swap: swap || 'innerHTML',
+        swap: swap || 'innerHTML'
       };
 
       this.sendResponse(response, connection);

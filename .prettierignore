@@ -1,0 +1,12 @@
+core/drizzle/*
+*/**/*.json
+*/**/*.jsonc
+*/**/*.yml
+*/**/*.css
+*/**/*.d.ts
+*/**/*.min.js
+*/**/*.esm.js
+**/.wrangler/*
+**/public/*
+**/.*
+**/*.d.ts

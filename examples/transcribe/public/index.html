@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WSX Transcribe · Deepgram Realtime Demo</title>
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link href="/main.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="aurora" aria-hidden="true"></div>
+    <div
+      id="transcribeRoot"
+      wx-config='{"url": "", "debug": true}'
+      style="display: contents"
+    >
+      <main class="shell">
+        <header>
+          <h1>
+            Transcribe in <span>Realtime</span>
+          </h1>
+          <p>
+            Stream microphone audio straight into WSX binary channels and watch Deepgram
+          stream transcripts back as JSON events. Built with the new WSX realtime
+          primitives.
+        </p>
+      </header>
+
+      <div class="status-line">
+        <div class="status-badge" id="connectionStatus" data-state="warning">
+          <span class="status-dot"></span>
+          <span id="connectionStatusText">Connecting to WSX…</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="cta-button" id="startButton">Start Listening</button>
+        <button class="cta-button secondary" id="stopButton" disabled>
+          Stop Session
+        </button>
+      </div>
+
+      <section class="meter" id="meter" aria-hidden="true">
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+        <div class="meter-bar"></div>
+      </section>
+
+      <section class="transcript-panel" aria-live="polite">
+        <div id="liveTranscript" class="transcript-live">Waiting for audio…</div>
+        <div id="transcriptHistory"></div>
+        </section>
+
+        <p class="footnote">
+          Provide a Deepgram realtime API key via <code>DEEPGRAM_API_KEY</code> before running the
+          server. The client streams <code>audio/webm;codecs=opus</code> chunks with
+          <code>wsx.sendStream()</code> while transcripts return through
+          <code>wsx.onJson()</code>.
+        </p>
+      </main>
+    </div>
+
+    <script>
+      (function initialiseWXConfig() {
+        const root = document.getElementById("transcribeRoot");
+        if (!root) return;
+
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        const url = `${protocol}://${window.location.host}/transcribe-ws`;
+        root.setAttribute("wx-config", JSON.stringify({ url, debug: true }));
+      })();
+    </script>
+    <script src="/wsx.js"></script>
+    <script type="module" src="/transcribe.js"></script>
+  </body>
+</html>
