@@ -97,6 +97,61 @@ const oobUpdate: WSXOOBUpdate = {
 };
 ```
 
+### WSXBinaryData
+
+Represents binary payloads exchanged over stream channels.
+
+```typescript
+type WSXBinaryData = ArrayBuffer | ArrayBufferView;
+```
+
+### WSXJSONMessage
+
+Represents a JSON message transferred over WSX channels.
+
+```typescript
+interface WSXJSONMessage {
+  id: string;
+  channel: string;
+  data: any;
+  metadata?: Record<string, any>;
+}
+```
+
+### WSXJSONSendOptions
+
+Optional settings when sending JSON messages.
+
+```typescript
+interface WSXJSONSendOptions {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+```
+
+### WSXStreamMessage
+
+Metadata attached to a binary stream frame.
+
+```typescript
+interface WSXStreamMessage {
+  id: string;
+  channel: string;
+  metadata?: Record<string, any>;
+}
+```
+
+### WSXStreamSendOptions
+
+Optional settings when sending stream frames.
+
+```typescript
+interface WSXStreamSendOptions {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+```
+
 ### WSXConnection
 
 Represents a WebSocket connection on the server side.
@@ -105,7 +160,7 @@ Represents a WebSocket connection on the server side.
 interface WSXConnection {
   id: string; // Unique connection identifier
   sessionData?: Record<string, any>; // Session storage
-  send(data: string): void; // Send data to client
+  send(data: string | WSXBinaryData): void; // Send data (HTML/JSON)
   close(): void; // Close connection
 
   // Optional properties
@@ -166,6 +221,29 @@ const getUserHandler: WSXHandler = async (request, connection) => {
     html: html`<div>${user.name}</div>`,
   };
 };
+```
+
+### WSXJSONHandler
+
+Type definition for JSON channel handlers.
+
+```typescript
+type WSXJSONHandler = (
+  message: WSXJSONMessage,
+  connection: WSXConnection
+) => Promise<void> | void;
+```
+
+### WSXStreamHandler
+
+Type definition for binary stream handlers.
+
+```typescript
+type WSXStreamHandler = (
+  message: WSXStreamMessage,
+  data: Uint8Array,
+  connection: WSXConnection
+) => Promise<void> | void;
 ```
 
 ### WSXErrorHandler

@@ -201,6 +201,166 @@ try {
 }
 ```
 
+## Data Channel Methods
+
+### sendJson()
+
+Send a JSON payload to the server on a named channel.
+
+```javascript
+wsx.sendJson(channel, data, options?)
+```
+
+#### Parameters
+
+- `channel` (string): Logical channel name shared with the server
+- `data` (*): JSON-serializable payload
+- `options` (Object, optional): Additional options
+  - `id` (string): Explicit message identifier
+  - `metadata` (Object): Extra metadata forwarded untouched
+
+#### Returns
+
+- `string`: Identifier assigned to the message
+
+#### Example
+
+```javascript
+const messageId = wsx.sendJson('presence', { status: 'online' }, {
+  metadata: { since: Date.now() },
+});
+```
+
+### onJson()
+
+Register a handler for JSON messages. Accepts either a channel/handler pair or a catch-all handler.
+
+```javascript
+wsx.onJson(channel, handler)
+wsx.onJson(handler)
+```
+
+#### Parameters
+
+- `channel` (string|function): Channel to listen on, or the handler for catch-all usage
+- `handler` (function, optional): Callback receiving `{ id, channel, data, metadata }`
+
+#### Returns
+
+- `WSX`: The client instance for chaining
+
+#### Example
+
+```javascript
+wsx.onJson('presence', ({ data }) => {
+  console.log('Presence update', data);
+});
+
+wsx.onJson((message) => {
+  console.log('JSON =>', message.channel, message.data);
+});
+```
+
+### offJson()
+
+Remove JSON handlers.
+
+```javascript
+wsx.offJson(channel?)
+```
+
+#### Parameters
+
+- `channel` (string, optional): Channel to remove; omit to clear all JSON handlers
+
+#### Returns
+
+- `WSX`: The client instance
+
+#### Example
+
+```javascript
+wsx.offJson('presence');
+wsx.offJson(); // Remove every JSON handler
+```
+
+### sendStream()
+
+Send a binary payload to the server on a named stream channel.
+
+```javascript
+await wsx.sendStream(channel, payload, options?)
+```
+
+#### Parameters
+
+- `channel` (string): Stream channel name
+- `payload` (ArrayBuffer|ArrayBufferView|Blob): Binary data to transmit
+- `options` (Object, optional): Additional options
+  - `id` (string): Explicit stream identifier
+  - `metadata` (Object): Metadata forwarded with the frame
+
+#### Returns
+
+- `Promise<string>`: Resolves with the stream identifier
+
+#### Example
+
+```javascript
+const streamId = await wsx.sendStream('audio', microphoneChunk, {
+  metadata: { mimeType: microphoneChunk.type },
+});
+```
+
+### onStream()
+
+Register a handler for incoming binary stream frames.
+
+```javascript
+wsx.onStream(channel, handler)
+wsx.onStream(handler)
+```
+
+#### Parameters
+
+- `channel` (string|function): Channel to observe, or the catch-all handler
+- `handler` (function, optional): Callback receiving `{ id, channel, metadata, data, arrayBuffer }`
+
+#### Returns
+
+- `WSX`: The client instance
+
+#### Example
+
+```javascript
+wsx.onStream('audio', ({ data, metadata }) => {
+  console.log('Received audio chunk', metadata);
+});
+```
+
+### offStream()
+
+Remove stream handlers.
+
+```javascript
+wsx.offStream(channel?)
+```
+
+#### Parameters
+
+- `channel` (string, optional): Channel to remove; omit to clear all stream handlers
+
+#### Returns
+
+- `WSX`: The client instance
+
+#### Example
+
+```javascript
+wsx.offStream('audio');
+wsx.offStream();
+```
+
 ## Event Handling
 
 ### on()
@@ -698,6 +858,57 @@ Shorthand function for accessing the global WSX instance.
 
 ```javascript
 wx().send('test-handler', '#target');
+```
+
+## Data Channel Types
+
+### WSXJSONOptions
+
+Optional configuration when sending JSON messages.
+
+```typescript
+interface WSXJSONOptions {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+```
+
+### WSXStreamOptions
+
+Optional configuration for binary stream frames.
+
+```typescript
+interface WSXStreamOptions {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+```
+
+### WSXJSONDetail
+
+Structure delivered to JSON handlers and DOM events.
+
+```typescript
+interface WSXJSONDetail {
+  id: string;
+  channel: string;
+  data: any;
+  metadata: Record<string, any>;
+}
+```
+
+### WSXStreamDetail
+
+Structure delivered to stream handlers and DOM events.
+
+```typescript
+interface WSXStreamDetail {
+  id: string;
+  channel: string;
+  metadata: Record<string, any>;
+  data: Uint8Array;
+  arrayBuffer: ArrayBuffer;
+}
 ```
 
 ## Best Practices

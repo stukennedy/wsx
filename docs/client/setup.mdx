@@ -204,6 +204,62 @@ const env = process.env.NODE_ENV || "development";
 const config = environments[env];
 ```
 
+## JSON Channels
+
+Use JSON channels when you need to move structured payloads alongside HTML
+swaps.
+
+```javascript
+// Subscribe to channel-specific updates
+wsx.onJson("presence", ({ data, metadata }) => {
+  console.log("Presence change", data, metadata);
+});
+
+// Catch every JSON message
+wsx.onJson((message) => {
+  console.log(`JSON => ${message.channel}`, message.data);
+});
+
+// Push data back to the server
+wsx.sendJson("presence", { status: "online" }, {
+  metadata: { region: "us-east-1" },
+});
+
+// Listen for DOM events
+document.addEventListener("wsx:json", (event) => {
+  console.log("JSON event", event.detail.channel);
+});
+```
+
+Each call to `sendJson`, `broadcastJson`, or `sendJsonToConnection` returns the
+message identifier so you can correlate acknowledgements.
+
+## Binary Streams
+
+Binary streams let you move raw audio, video, or sensor data with metadata.
+
+```javascript
+// Handle incoming binary payloads
+wsx.onStream("audio", ({ data, metadata }) => {
+  const chunk = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  const blob = new Blob([chunk], { type: metadata?.mimeType });
+  new Audio(URL.createObjectURL(blob)).play();
+});
+
+// Forward media chunks to the server
+await wsx.sendStream("audio", microphoneChunk, {
+  metadata: { mimeType: microphoneChunk.type },
+});
+
+// Observe all streams through DOM events
+document.addEventListener("wsx:stream", (event) => {
+  console.log("Stream", event.detail.channel, event.detail.id);
+});
+```
+
+The `sendStream` helper accepts `ArrayBuffer`, typed arrays, or `Blob`
+instances. Handlers receive a `Uint8Array` view plus the metadata you supplied.
+
 ## Error Handling
 
 ### Connection Errors

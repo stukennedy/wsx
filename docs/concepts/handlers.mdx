@@ -105,6 +105,33 @@ wsx.on("update-content", async (request, connection) => {
 
 ## Handler Types
 
+### JSON Channel Handlers
+
+Use `wsx.onJson()` to react to structured payloads that are broadcast or targeted to your server. JSON handlers receive a message envelope with `id`, `channel`, `data`, and optional `metadata`.
+
+```ts
+wsx.onJson('presence', async (message, connection) => {
+  wsx.broadcastJson('presence', {
+    userId: connection.id,
+    status: message.data.status,
+  });
+});
+```
+
+Register a catch-all handler with `wsx.onJson(async (message) => { ... })` when you need to observe every channel.
+
+### Stream Handlers
+
+Binary streams are ideal for audio, video, or other raw payloads. Register them with `wsx.onStream()` and work with the supplied `Uint8Array` data plus metadata.
+
+```ts
+wsx.onStream('audio', async (message, data) => {
+  console.log(`Frame ${message.id} -> ${data.byteLength} bytes`);
+});
+```
+
+Paired helpers like `wsx.broadcastStream()` and `wsx.sendStreamToConnection()` mirror the HTML response workflow but operate on binary buffers.
+
 ### Named Handlers
 
 Handle specific actions by name:

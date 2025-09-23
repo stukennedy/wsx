@@ -70,6 +70,62 @@ wsx.on(async (request, connection) => {
 });
 ```
 
+#### onJson()
+
+Register handlers for JSON message channels. Accepts either a specific channel or a catch-all handler.
+
+```typescript
+onJson(channel: string, handler: WSXJSONHandler): WSXServer
+onJson(handler: WSXJSONHandler): WSXServer
+```
+
+**Parameters:**
+
+- `channel` (optional) - JSON channel name to handle
+- `handler` - Function invoked with `WSXJSONMessage` objects
+
+**Example:**
+
+```typescript
+wsx.onJson('presence', async (message, connection) => {
+  wsx.broadcastJson('presence', {
+    userId: connection.id,
+    status: message.data.status,
+  });
+});
+
+// Observe every JSON payload
+wsx.onJson(async (message) => {
+  console.log(message.channel, message.data);
+});
+```
+
+#### onStream()
+
+Register handlers for binary stream messages. Works with channel-specific or catch-all handlers.
+
+```typescript
+onStream(channel: string, handler: WSXStreamHandler): WSXServer
+onStream(handler: WSXStreamHandler): WSXServer
+```
+
+**Parameters:**
+
+- `channel` (optional) - Stream channel name to handle
+- `handler` - Function invoked with `WSXStreamMessage` metadata and the binary payload
+
+**Example:**
+
+```typescript
+wsx.onStream('audio', async (message, data) => {
+  console.log(`Received ${data.byteLength} bytes on`, message.channel);
+});
+
+wsx.onStream(async (message) => {
+  console.log('Stream message on', message.channel);
+});
+```
+
 #### broadcast()
 
 Send a message to all connected clients.
@@ -88,6 +144,50 @@ broadcast(target: string, html: string, swap?: string): void
 
 ```javascript
 wsx.broadcast("#status", "<div>Server updated</div>", "innerHTML");
+```
+
+#### broadcastJson()
+
+Publish a JSON payload to every connected client.
+
+```typescript
+broadcastJson(channel: string, data: any, options?: WSXJSONSendOptions): string
+```
+
+**Parameters:**
+
+- `channel` - Logical channel name
+- `data` - JSON-serializable payload
+- `options` (optional) - Additional metadata or explicit identifier
+
+**Returns:** Unique message identifier sent to clients
+
+**Example:**
+
+```typescript
+wsx.broadcastJson('presence', { userId: 'conn_5', status: 'online' });
+```
+
+#### broadcastStream()
+
+Send a binary payload to every connected client.
+
+```typescript
+broadcastStream(channel: string, payload: WSXBinaryData, options?: WSXStreamSendOptions): string
+```
+
+**Parameters:**
+
+- `channel` - Stream channel name
+- `payload` - Binary data (`ArrayBuffer` or typed array)
+- `options` (optional) - Metadata or explicit stream identifier
+
+**Returns:** Generated stream identifier
+
+**Example:**
+
+```typescript
+wsx.broadcastStream('audio', audioChunk, { metadata: { mimeType: 'audio/webm' } });
 ```
 
 #### sendToConnection()
@@ -113,6 +213,52 @@ wsx.sendToConnection(
   "#notification",
   "<div>Personal message</div>"
 );
+```
+
+#### sendJsonToConnection()
+
+Send a JSON message to a specific connection.
+
+```typescript
+sendJsonToConnection(connectionId: string, channel: string, data: any, options?: WSXJSONSendOptions): string | undefined
+```
+
+**Parameters:**
+
+- `connectionId` - Target connection ID
+- `channel` - JSON channel name
+- `data` - JSON-serializable payload
+- `options` (optional) - Metadata or explicit message identifier
+
+**Returns:** Message identifier, or `undefined` if the connection is not found
+
+**Example:**
+
+```typescript
+wsx.sendJsonToConnection(connection.id, 'presence', { status: 'typing' });
+```
+
+#### sendStreamToConnection()
+
+Send a binary stream frame to a specific connection.
+
+```typescript
+sendStreamToConnection(connectionId: string, channel: string, payload: WSXBinaryData, options?: WSXStreamSendOptions): string | undefined
+```
+
+**Parameters:**
+
+- `connectionId` - Target connection ID
+- `channel` - Stream channel name
+- `payload` - Binary payload (`ArrayBuffer` or typed array)
+- `options` (optional) - Metadata or explicit identifier
+
+**Returns:** Stream identifier, or `undefined` if the connection is missing
+
+**Example:**
+
+```typescript
+wsx.sendStreamToConnection(connection.id, 'audio', audioChunk, { metadata: { sequence: 5 } });
 ```
 
 #### getConnections()
@@ -289,6 +435,84 @@ type WSXHandler = (
 - `WSXResponse` - Single response
 - `WSXResponse[]` - Array of responses
 - `void` - No response (useful for side effects only)
+
+## WSXBinaryData
+
+Union type representing allowed binary payloads.
+
+```typescript
+type WSXBinaryData = ArrayBuffer | ArrayBufferView;
+```
+
+## WSXJSONMessage
+
+Structure passed to JSON handlers and received on the client.
+
+```typescript
+interface WSXJSONMessage {
+  id: string;
+  channel: string;
+  data: any;
+  metadata?: Record<string, any>;
+}
+```
+
+## WSXJSONHandler
+
+Type definition for JSON message handlers.
+
+```typescript
+type WSXJSONHandler = (
+  message: WSXJSONMessage,
+  connection: WSXConnection
+) => Promise<void> | void;
+```
+
+## WSXJSONSendOptions
+
+Optional options when sending JSON messages.
+
+```typescript
+interface WSXJSONSendOptions {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+```
+
+## WSXStreamMessage
+
+Metadata describing a binary stream frame.
+
+```typescript
+interface WSXStreamMessage {
+  id: string;
+  channel: string;
+  metadata?: Record<string, any>;
+}
+```
+
+## WSXStreamHandler
+
+Type definition for stream handlers.
+
+```typescript
+type WSXStreamHandler = (
+  message: WSXStreamMessage,
+  data: Uint8Array,
+  connection: WSXConnection
+) => Promise<void> | void;
+```
+
+## WSXStreamSendOptions
+
+Optional options when sending binary stream frames.
+
+```typescript
+interface WSXStreamSendOptions {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+```
 
 ## WSXServerAdapter
 

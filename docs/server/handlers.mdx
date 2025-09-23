@@ -667,6 +667,83 @@ describe("Handler Integration", () => {
 });
 ```
 
+## JSON Handlers {#json-handlers}
+
+In addition to HTML responses, WSX servers can subscribe to JSON message channels. JSON handlers receive a structured payload plus optional metadata and can broadcast messages to other clients.
+
+```ts
+wsx.onJson("presence", async (message, connection) => {
+  console.log(
+    `Presence update from ${connection.id}: ${message.data.status}`
+  );
+
+  wsx.broadcastJson("presence", {
+    userId: connection.id,
+    status: message.data.status,
+  });
+});
+
+// Catch-all JSON handler
+wsx.onJson(async (message, connection) => {
+  console.log(`JSON on ${message.channel}`, message.data);
+});
+```
+
+Every JSON message includes:
+
+- `id`: Unique identifier (auto-generated when omitted)
+- `channel`: Logical name for routing
+- `data`: Any JSON-serializable payload
+- `metadata`: Optional contextual information
+
+Use the helper methods to target specific audiences:
+
+```ts
+// Broadcast to all connections
+wsx.broadcastJson("presence", { userId: "conn_123", status: "away" });
+
+// Target a single connection and attach metadata
+wsx.sendJsonToConnection(connection.id, "presence", { status: "online" }, {
+  metadata: { since: Date.now() },
+});
+```
+
+## Stream Handlers {#stream-handlers}
+
+Stream handlers process binary payloads such as audio, video, or sensor readings. Messages arrive with metadata describing the stream plus a `Uint8Array` payload.
+
+```ts
+wsx.onStream("audio", async (message, data, connection) => {
+  console.log(
+    `Audio frame ${message.id} from ${connection.id} (${data.byteLength} bytes)`
+  );
+
+  // Fan the frame back out to listeners
+  wsx.broadcastStream("audio", data, { metadata: message.metadata });
+});
+
+// Observe all streams
+wsx.onStream(async (message, data) => {
+  console.log(`Stream on ${message.channel}`, message.metadata);
+});
+```
+
+Stream helpers mirror the HTML and JSON APIs:
+
+```ts
+// Broadcast binary data
+wsx.broadcastStream("audio", chunk, {
+  metadata: { mimeType: "audio/webm" },
+});
+
+// Send a frame to a single connection
+wsx.sendStreamToConnection(connection.id, "audio", chunk, {
+  metadata: { sequence: 42 },
+});
+```
+
+Incoming metadata is optional, so defensively check for fields before using them. Streams are delivered as `Uint8Array` views—convert to `Buffer` or copy to an `ArrayBuffer` when necessary.
+
 ## Best Practices
 
 1. **Always Return Responses**: Handlers should return a response object

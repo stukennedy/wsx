@@ -214,6 +214,41 @@ When you click the button:
 3. The server broadcasts the new count to all connected clients
 4. All browser windows update simultaneously
 
+## JSON & Binary Messaging
+
+HTML swaps are just one of the delivery mechanisms WSX supports. You can also
+stream binary data or publish JSON payloads to named channels.
+
+```ts
+// Add alongside your existing handlers
+wsx.onJson("presence", async (message, connection) => {
+  wsx.broadcastJson("presence", {
+    userId: connection.id,
+    status: message.data.status,
+  });
+});
+
+wsx.onStream("audio", async (message, chunk) => {
+  console.log(`Audio frame ${message.id} (${chunk.byteLength} bytes)`);
+});
+```
+
+```js
+// Client-side helpers
+wsx.onJson("presence", ({ data }) => {
+  console.log("Presence", data);
+});
+
+wsx.sendJson("presence", { status: "online" });
+
+await wsx.sendStream("audio", microphoneChunk, {
+  metadata: { mimeType: microphoneChunk.type },
+});
+```
+
+See the server and client guides for deeper coverage of JSON channels and
+binary streams.
+
 ## Next Steps
 
 Now that you have WSX running, explore these features:

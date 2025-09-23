@@ -529,6 +529,48 @@ wsx.on("rate-limited-update", async (request, connection) => {
 });
 ```
 
+## JSON Channel Broadcasting
+
+When you need to send structured data instead of HTML, use the JSON helpers. Each message carries an identifier, channel name, payload, and optional metadata that the client receives untouched.
+
+```ts
+// Publish to every connection
+wsx.broadcastJson('presence', {
+  userId: connection.id,
+  status: 'away',
+});
+
+// Target an individual connection
+wsx.sendJsonToConnection(connection.id, 'presence', {
+  status: 'online',
+}, {
+  metadata: { since: Date.now() },
+});
+```
+
+Register listeners with `wsx.onJson()` on the client or listen for the
+`wsx:json` browser event to respond declaratively.
+
+## Binary Stream Broadcasting
+
+Binary helpers let you pipe raw media or file chunks through the same WebSocket connection. Frames are prefixed with metadata so receivers know how to interpret the bytes.
+
+```ts
+// Fan a stream frame out to everyone
+wsx.broadcastStream('audio', audioChunk, {
+  metadata: { mimeType: 'audio/webm', sequence: nextSeq },
+});
+
+// Send a specific chunk to one listener
+wsx.sendStreamToConnection(connection.id, 'audio', audioChunk, {
+  metadata: { sequence: nextSeq },
+});
+```
+
+On the client, pair `wsx.onStream()` with `wsx.sendStream()` to move data in both
+directions. Stream payloads arrive as `Uint8Array` views; convert them to
+`Buffer`, `Blob`, or other formats as needed before processing.
+
 ## Connection Management
 
 ### Connection Tracking

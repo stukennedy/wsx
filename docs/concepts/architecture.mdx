@@ -120,6 +120,7 @@ The client is built around several key classes:
 - Handles reconnection logic
 - Processes incoming messages
 - Manages pending requests
+- Dispatches JSON channel events and binary stream payloads
 
 #### Event System
 - Listens for DOM events
@@ -142,6 +143,7 @@ The server uses a clean, event-driven architecture:
 - Handler registration and routing
 - Broadcasting capabilities
 - Connection lifecycle management
+- JSON channel routing and binary stream fan-out helpers
 
 #### Connection Management
 - Each WebSocket connection is wrapped in a `WSXConnection` object
@@ -195,6 +197,19 @@ class HonoAdapter implements WSXServerAdapter {
 6. **Handler Execution**: Handler processes request and returns response
 7. **Response Processing**: Server processes response and sends back to client(s)
 8. **DOM Update**: Client applies response to DOM using swap specifications
+
+### Data Channels
+
+WSX multiplexes three complementary payload types over the same WebSocket:
+
+- **HTML responses** drive hypermedia swaps produced by `wsx.on()` handlers
+- **JSON messages** flow through `wsx.onJson()` on the server and
+  `wsx.onJson()`/`wsx:json` events on the client
+- **Binary streams** move audio, files, or sensor data via `wsx.sendStream()`
+  and `wsx.onStream()` APIs
+
+Mix the channels as needed—render HTML updates, broadcast presence over JSON,
+then stream raw media without opening extra sockets.
 
 ### Broadcasting
 

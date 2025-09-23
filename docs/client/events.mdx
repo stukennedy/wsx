@@ -118,6 +118,39 @@ document.addEventListener('wsx:requestError', (event) => {
 });
 ```
 
+## Data Channel Events
+
+### wsx:json
+Fired whenever a JSON message arrives from the server or another client:
+
+```javascript
+document.addEventListener('wsx:json', (event) => {
+  const { id, channel, data, metadata } = event.detail;
+  console.log(`JSON message ${id} on ${channel}`, data, metadata);
+});
+```
+
+Pair DOM listeners with programmatic handlers registered via `wsx.onJson()` for
+fine-grained control.
+
+### wsx:stream
+Fired for each binary stream frame that lands on the client:
+
+```javascript
+document.addEventListener('wsx:stream', (event) => {
+  const { channel, metadata, arrayBuffer } = event.detail;
+  console.log(`Stream chunk on ${channel}`, metadata);
+
+  if (metadata?.mimeType?.startsWith('audio/')) {
+    const audio = document.querySelector('#preview');
+    audio.src = URL.createObjectURL(new Blob([arrayBuffer], { type: metadata.mimeType }));
+  }
+});
+```
+
+Use `wsx.onStream()` when you prefer callback registration and the `wsx:stream`
+event when you need declarative DOM hooks.
+
 ## Swap Events
 
 ### wsx:beforeSwap
