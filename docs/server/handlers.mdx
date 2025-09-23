@@ -667,7 +667,7 @@ describe("Handler Integration", () => {
 });
 ```
 
-## JSON Handlers {#json-handlers}
+## JSON Handlers
 
 In addition to HTML responses, WSX servers can subscribe to JSON message channels. JSON handlers receive a structured payload plus optional metadata and can broadcast messages to other clients.
 
@@ -708,7 +708,7 @@ wsx.sendJsonToConnection(connection.id, "presence", { status: "online" }, {
 });
 ```
 
-## Stream Handlers {#stream-handlers}
+## Stream Handlers
 
 Stream handlers process binary payloads such as audio, video, or sensor readings. Messages arrive with metadata describing the stream plus a `Uint8Array` payload.
 
