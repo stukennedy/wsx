@@ -9,6 +9,13 @@ export type {
   WSXHandler,
   WSXServerAdapter,
   WSXServerConfig,
+  WSXBinaryData,
+  WSXJSONMessage,
+  WSXJSONHandler,
+  WSXJSONSendOptions,
+  WSXStreamHandler,
+  WSXStreamMessage,
+  WSXStreamSendOptions,
 } from "./types";
 
 // Convenience function to create a WSX server with an adapter

@@ -30,6 +30,35 @@
  * @property {HTMLElement} [element] - Source element
  */
 
+/**
+ * @typedef {Object} WSXStreamOptions
+ * @property {string} [id] - Optional stream identifier
+ * @property {Object} [metadata] - Additional metadata to include with the stream
+ */
+
+/**
+ * @typedef {Object} WSXJSONOptions
+ * @property {string} [id] - Optional JSON message identifier
+ * @property {Object} [metadata] - Additional metadata to include with the message
+ */
+
+/**
+ * @typedef {Object} WSXJSONDetail
+ * @property {string} id - Message identifier
+ * @property {string} channel - Channel the JSON message was published to
+ * @property {Object} metadata - Optional metadata provided by the sender
+ * @property {*} data - The JSON payload
+ */
+
+/**
+ * @typedef {Object} WSXStreamDetail
+ * @property {string} id - Stream identifier
+ * @property {string} channel - Logical channel for the stream
+ * @property {Object} metadata - Metadata provided by the sender
+ * @property {Uint8Array} data - Raw binary payload
+ * @property {ArrayBuffer} arrayBuffer - Copy of the payload as an ArrayBuffer
+ */
+
 class WSX {
   /**
    * @param {WSXConfig} config - Configuration object
@@ -42,6 +71,10 @@ class WSX {
     this.requestCounter = 0;
     this.throttleTimers = new Map();
     this.debounceTimers = new Map();
+    this.streamHandlers = new Map();
+    this.jsonHandlers = new Map();
+    this.textEncoder = new TextEncoder();
+    this.textDecoder = new TextDecoder();
 
     this.config = {
       reconnectInterval: 3000,
@@ -57,6 +90,7 @@ class WSX {
   connect() {
     try {
       this.ws = new WebSocket(this.config.url);
+      this.ws.binaryType = "arraybuffer";
       this.ws.onopen = this.onOpen.bind(this);
       this.ws.onmessage = this.onMessage.bind(this);
       this.ws.onclose = this.onClose.bind(this);
@@ -76,13 +110,313 @@ class WSX {
     document.dispatchEvent(new CustomEvent("wsx:connected"));
   }
 
-  onMessage(event) {
+  async onMessage(event) {
     try {
-      const message = JSON.parse(event.data);
-      this.handleMessage(message);
+      if (typeof event.data === "string") {
+        const message = JSON.parse(event.data);
+        this.handleMessage(message);
+      } else {
+        await this.handleBinaryMessage(event.data);
+      }
     } catch (error) {
-      this.log("Error parsing message:", error);
+      this.log("Error processing message:", error);
     }
+  }
+
+  async handleBinaryMessage(data) {
+    try {
+      const bytes = await this.toUint8Array(data);
+
+      if (bytes.byteLength < 4) {
+        throw new Error("Stream message too small");
+      }
+
+      const view = new DataView(
+        bytes.buffer,
+        bytes.byteOffset,
+        bytes.byteLength
+      );
+      const headerLength = view.getUint32(0, false);
+      const headerStart = 4;
+      const headerEnd = headerStart + headerLength;
+
+      if (bytes.byteLength < headerEnd) {
+        throw new Error("Stream message header incomplete");
+      }
+
+      const headerBytes = bytes.subarray(headerStart, headerEnd);
+      const headerString = this.textDecoder.decode(headerBytes);
+      const header = JSON.parse(headerString);
+
+      if (!header || header.type !== "stream") {
+        this.log("Unsupported binary message received", header);
+        return;
+      }
+
+      if (typeof header.id !== "string" || typeof header.channel !== "string") {
+        throw new Error("Invalid stream header");
+      }
+
+      const payload = bytes.subarray(headerEnd);
+
+      this.dispatchStream(
+        {
+          id: header.id,
+          channel: header.channel,
+          metadata: header.metadata || {},
+        },
+        payload
+      );
+    } catch (error) {
+      this.log("Error handling binary message:", error);
+    }
+  }
+
+  /**
+   * Dispatch an incoming JSON message to registered handlers and DOM listeners.
+   * @param {{id?: string, channel: string, metadata?: Object, data: any, type?: string}} message
+   */
+  dispatchJson(message) {
+    if (!message || typeof message.channel !== "string") {
+      this.log("Invalid JSON message received", message);
+      return;
+    }
+
+    const detail = {
+      id:
+        typeof message.id === "string"
+          ? message.id
+          : this.generateJsonId(),
+      channel: message.channel,
+      metadata:
+        message.metadata && typeof message.metadata === "object"
+          ? message.metadata
+          : {},
+      data: message.data,
+    };
+
+    const handler =
+      this.jsonHandlers.get(detail.channel) || this.jsonHandlers.get("");
+
+    if (handler) {
+      try {
+        handler(detail);
+      } catch (error) {
+        this.log("Error in JSON handler:", error);
+      }
+    }
+
+    document.dispatchEvent(new CustomEvent("wsx:json", { detail }));
+  }
+
+  /**
+   * Dispatch a decoded stream payload to registered handlers and DOM listeners.
+   * @param {{id: string, channel: string, metadata: Object}} message - Stream metadata
+   * @param {Uint8Array} payload - Binary payload for the stream message
+   */
+  dispatchStream(message, payload) {
+    const detail = {
+      id: message.id,
+      channel: message.channel,
+      metadata: message.metadata || {},
+      data: payload,
+      arrayBuffer: payload.buffer.slice(
+        payload.byteOffset,
+        payload.byteOffset + payload.byteLength
+      ),
+    };
+
+    const handler =
+      this.streamHandlers.get(message.channel) ||
+      this.streamHandlers.get("");
+
+    if (handler) {
+      try {
+        handler(detail);
+      } catch (error) {
+        this.log("Error in stream handler:", error);
+      }
+    }
+
+    document.dispatchEvent(new CustomEvent("wsx:stream", { detail }));
+  }
+
+  /**
+   * Register a handler for incoming stream data.
+   * @param {string|function} channelOrHandler - Channel name or catch-all handler
+   * @param {function} [handler] - Handler invoked when the specified channel receives data
+   * @returns {WSX} The WSX instance for chaining
+   */
+  onJson(channelOrHandler, handler) {
+    if (typeof channelOrHandler === "string") {
+      if (typeof handler !== "function") {
+        throw new Error("JSON handler must be a function");
+      }
+      this.jsonHandlers.set(channelOrHandler, handler);
+    } else if (typeof channelOrHandler === "function") {
+      this.jsonHandlers.set("", channelOrHandler);
+    } else {
+      throw new Error("Invalid JSON handler registration");
+    }
+
+    return this;
+  }
+
+  /**
+   * Remove a previously registered JSON handler.
+   * @param {string} [channel] - Channel to remove; omitting clears all handlers
+   * @returns {WSX} The WSX instance for chaining
+   */
+  offJson(channel) {
+    if (typeof channel === "string") {
+      this.jsonHandlers.delete(channel);
+    } else {
+      this.jsonHandlers.clear();
+    }
+
+    return this;
+  }
+
+  /**
+   * Register a handler for incoming stream data.
+   * @param {string|function} channelOrHandler - Channel name or catch-all handler
+   * @param {function} [handler] - Handler invoked when the specified channel receives data
+   * @returns {WSX} The WSX instance for chaining
+   */
+  onStream(channelOrHandler, handler) {
+    if (typeof channelOrHandler === "string") {
+      if (typeof handler !== "function") {
+        throw new Error("Stream handler must be a function");
+      }
+      this.streamHandlers.set(channelOrHandler, handler);
+    } else if (typeof channelOrHandler === "function") {
+      this.streamHandlers.set("", channelOrHandler);
+    } else {
+      throw new Error("Invalid stream handler registration");
+    }
+
+    return this;
+  }
+
+  /**
+   * Remove a previously registered stream handler.
+   * @param {string} [channel] - Channel to remove; omitting clears all handlers
+   * @returns {WSX} The WSX instance for chaining
+   */
+  offStream(channel) {
+    if (typeof channel === "string") {
+      this.streamHandlers.delete(channel);
+    } else {
+      this.streamHandlers.clear();
+    }
+
+    return this;
+  }
+
+  generateStreamId() {
+    return `stream_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+
+  generateJsonId() {
+    return `json_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+  }
+
+  /**
+   * Send a binary stream payload to the server.
+   * @param {string} channel - Logical channel name used by server handlers
+   * @param {ArrayBuffer|ArrayBufferView|Blob} data - Binary payload to transmit
+   * @param {WSXStreamOptions} [options] - Additional stream options
+   * @returns {Promise<string>} Resolves with the stream identifier
+   */
+  async sendStream(channel, data, options = {}) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error("Cannot send stream: connection is not open");
+    }
+
+    const streamId = options.id || this.generateStreamId();
+    const header = {
+      type: "stream",
+      id: streamId,
+      channel,
+    };
+
+    if (options.metadata !== undefined) {
+      header.metadata = options.metadata;
+    }
+
+    const headerBytes = this.textEncoder.encode(JSON.stringify(header));
+    const headerLengthBuffer = new ArrayBuffer(4);
+    new DataView(headerLengthBuffer).setUint32(
+      0,
+      headerBytes.byteLength,
+      false
+    );
+    const headerLengthBytes = new Uint8Array(headerLengthBuffer);
+    const payloadBytes = await this.toUint8Array(data);
+    const frame = new Uint8Array(
+      4 + headerBytes.byteLength + payloadBytes.byteLength
+    );
+    frame.set(headerLengthBytes, 0);
+    frame.set(headerBytes, 4);
+    frame.set(payloadBytes, 4 + headerBytes.byteLength);
+
+    this.ws.send(frame);
+
+    return streamId;
+  }
+
+  /**
+   * Send a JSON message payload to the server.
+   * @param {string} channel - Logical channel name used by server handlers
+   * @param {*} data - JSON-serializable payload to transmit
+   * @param {WSXJSONOptions} [options] - Additional message options
+   * @returns {string} Identifier of the sent JSON message
+   */
+  sendJson(channel, data, options = {}) {
+    if (this.demoMode) {
+      throw new Error("Cannot send JSON messages while demo mode is active");
+    }
+
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error("Cannot send JSON message: connection is not open");
+    }
+
+    const message = {
+      type: "json",
+      id: options.id || this.generateJsonId(),
+      channel,
+      data,
+    };
+
+    if (options.metadata !== undefined) {
+      message.metadata = options.metadata;
+    }
+
+    this.send(message);
+
+    return message.id;
+  }
+
+  /**
+   * Normalise a variety of binary inputs into a Uint8Array view.
+   * @param {ArrayBuffer|ArrayBufferView|Blob} data - Incoming binary data
+   * @returns {Promise<Uint8Array>} View of the provided binary data
+   */
+  async toUint8Array(data) {
+    if (data instanceof ArrayBuffer) {
+      return new Uint8Array(data);
+    }
+
+    if (ArrayBuffer.isView(data)) {
+      return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    }
+
+    if (typeof Blob !== "undefined" && data instanceof Blob) {
+      const buffer = await data.arrayBuffer();
+      return new Uint8Array(buffer);
+    }
+
+    throw new Error("Unsupported binary data type");
   }
 
   onClose() {
@@ -249,6 +583,11 @@ const wsx = createHonoWSXServer();`,
   }
 
   handleMessage(message) {
+    if (message && typeof message === "object" && message.type === "json") {
+      this.dispatchJson(message);
+      return;
+    }
+
     // Handle main response
     this.processSwapUpdate(
       {
@@ -805,15 +1144,29 @@ const wsx = createHonoWSXServer();`,
   }
 
   send(message) {
+    const isJsonMessage =
+      message && typeof message === "object" && message.type === "json";
+
     if (this.demoMode) {
+      if (isJsonMessage) {
+        this.log("Cannot send JSON message: demo mode active");
+        return;
+      }
+
       // Handle demo mode with simulated responses
       setTimeout(() => {
         const demoResponse = this.generateDemoResponse(message);
         this.handleMessage(demoResponse);
       }, 100 + Math.random() * 300); // Simulate network delay
-    } else if (this.ws && this.isConnected) {
+      return;
+    }
+
+    if (this.ws && this.isConnected) {
       this.ws.send(JSON.stringify(message));
-      this.log("Sent message:", message);
+      this.log(
+        isJsonMessage ? "Sent JSON message:" : "Sent message:",
+        message
+      );
     } else {
       this.log("Cannot send message: not connected");
     }

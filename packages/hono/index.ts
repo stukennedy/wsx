@@ -5,6 +5,7 @@ import {
   WSXServerAdapter,
   WSXConnection,
   WSXServerConfig,
+  WSXBinaryData,
 } from "../core";
 
 export class HonoAdapter implements WSXServerAdapter {
@@ -18,7 +19,7 @@ export class HonoAdapter implements WSXServerAdapter {
 
   setupWebSocket(
     path: string,
-    onMessage: (data: string, connection: WSXConnection) => void
+    onMessage: (data: string | WSXBinaryData, connection: WSXConnection) => void
   ): void {
     this.app.get(
       path,
@@ -34,9 +35,21 @@ export class HonoAdapter implements WSXServerAdapter {
           const connection: WSXConnection = {
             id: connectionId,
             sessionData: {},
-            send: (data: string) => {
+            send: (data: string | WSXBinaryData) => {
               try {
-                ws.send(data);
+                if (typeof data === "string") {
+                  ws.send(data);
+                } else {
+                  const view =
+                    data instanceof ArrayBuffer
+                      ? new Uint8Array(data)
+                      : new Uint8Array(
+                          data.buffer,
+                          data.byteOffset,
+                          data.byteLength
+                        );
+                  ws.send(view);
+                }
               } catch (error) {
                 console.error("Error sending data:", error);
               }
@@ -50,7 +63,20 @@ export class HonoAdapter implements WSXServerAdapter {
             },
           };
 
-          await onMessage(event.data.toString(), connection);
+          const rawData = event.data;
+          let payload: string | WSXBinaryData;
+
+          if (typeof rawData === "string") {
+            payload = rawData;
+          } else if (rawData instanceof ArrayBuffer) {
+            payload = rawData;
+          } else if (ArrayBuffer.isView(rawData)) {
+            payload = rawData as ArrayBufferView;
+          } else {
+            payload = String(rawData);
+          }
+
+          await onMessage(payload, connection);
         },
 
         onClose: (event, ws) => {

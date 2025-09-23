@@ -24,7 +24,7 @@ export interface WSXOOBUpdate {
 export interface WSXConnection {
   id: string;
   sessionData?: Record<string, any>;
-  send(data: string): void;
+  send(data: string | WSXBinaryData): void;
   close(): void;
 }
 
@@ -33,10 +33,46 @@ export type WSXHandler = (
   connection: WSXConnection
 ) => Promise<WSXResponse | WSXResponse[] | void>;
 
+export type WSXBinaryData = ArrayBuffer | ArrayBufferView;
+
+export interface WSXJSONMessage {
+  id: string;
+  channel: string;
+  data: any;
+  metadata?: Record<string, any>;
+}
+
+export type WSXJSONHandler = (
+  message: WSXJSONMessage,
+  connection: WSXConnection
+) => Promise<void> | void;
+
+export interface WSXJSONSendOptions {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface WSXStreamMessage {
+  id: string;
+  channel: string;
+  metadata?: Record<string, any>;
+}
+
+export type WSXStreamHandler = (
+  message: WSXStreamMessage,
+  data: Uint8Array,
+  connection: WSXConnection
+) => Promise<void> | void;
+
+export interface WSXStreamSendOptions {
+  id?: string;
+  metadata?: Record<string, any>;
+}
+
 export interface WSXServerAdapter {
   setupWebSocket(
     path: string,
-    onMessage: (data: string, connection: WSXConnection) => void
+    onMessage: (data: string | WSXBinaryData, connection: WSXConnection) => void
   ): void;
   onConnection?(connection: WSXConnection): void;
   onDisconnection?(connection: WSXConnection): void;
