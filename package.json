@@ -1,6 +1,6 @@
 {
   "name": "@wsx-sh/workspace",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "WSX monorepo - Framework-agnostic WebSocket library for reactive web applications",
   "private": true,
   "workspaces": [
