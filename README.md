@@ -9,6 +9,7 @@
 - **🎯 Advanced Triggers**: Rich trigger system with throttling, debouncing, delays, and conditions
 - **🔧 Framework Agnostic**: Works with Express, Hono, and other frameworks via adapters
 - **🌐 Broadcasting**: Send updates to all connected clients or specific connections
+- **🎧 Binary Streams**: Pipe audio or any binary payloads between browser and server with minimal setup
 - **⚡ Swap Modifiers**: Control timing, positioning, and animation of DOM updates
 - **🔌 Easy Integration**: Drop-in client library with minimal configuration
 - **📦 Monorepo Structure**: Organized packages for core, adapters, and client
@@ -307,6 +308,112 @@ wsx.on((request, connection) => {
   console.log(`Request from ${connection.id}: ${request.handler}`);
 });
 ```
+
+## 🎧 Streaming Binary Data
+
+WSX can transport arbitrary binary payloads alongside traditional HTML updates. This enables scenarios such as piping audio from
+the browser to the server (and back) without leaving the WSX programming model.
+
+### Server-side streaming
+
+```javascript
+// Receive audio chunks and relay them to all connected clients
+wsx.onStream("audio", async (message, data, connection) => {
+  console.log(
+    `Received audio chunk ${message.id} from ${connection.id} (${data.byteLength} bytes)`
+  );
+
+  // Forward the raw bytes back out to listeners, preserving metadata
+  wsx.broadcastStream("audio", data, { metadata: message.metadata });
+});
+
+// Target a single connection when needed
+// wsx.sendStreamToConnection(connectionId, "audio", data, { metadata: { mimeType: "audio/webm" } });
+```
+
+The `onStream` handler receives a metadata object (`id`, `channel`, and optional `metadata`) together with the raw `Uint8Array`
+payload. The new `broadcastStream` and `sendStreamToConnection` helpers mirror the HTML response helpers, but operate on binary
+buffers instead.
+
+### Client-side streaming
+
+```javascript
+// Listen for incoming audio and play it back
+wsx.onStream("audio", ({ data, metadata }) => {
+  const mimeType = metadata?.mimeType || "audio/webm";
+  const buffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  const audioBlob = new Blob([buffer], { type: mimeType });
+  const url = URL.createObjectURL(audioBlob);
+  const audio = new Audio(url);
+  audio.play();
+});
+
+// Capture microphone input and push it to the server
+const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+recorder.ondataavailable = async (event) => {
+  if (event.data.size > 0) {
+    await wsx.sendStream("audio", event.data, {
+      metadata: { mimeType: event.data.type, sampleRate: 48000 },
+    });
+  }
+};
+
+recorder.start(250); // send audio in 250ms chunks
+```
+
+`sendStream` accepts `ArrayBuffer`, typed arrays, or `Blob` instances, making it simple to forward chunks produced by the
+`MediaRecorder` API or other binary sources. Stream handlers can also be registered without a channel name to observe every
+incoming stream: `wsx.onStream((stream) => console.log(stream.channel));`.
+
+## 🔁 JSON Channels
+
+In addition to HTML responses and binary streams, WSX can move arbitrary JSON documents in either direction. JSON channels behave
+similarly to streams: register handlers on both server and client, then send messages to a named channel whenever you have
+structured data to share.
+
+### Server-side JSON handlers
+
+```ts
+wsx.onJson("presence", async (message, connection) => {
+  console.log(
+    `Presence update from ${connection.id}: ${message.data.status}`
+  );
+
+  // Broadcast the update to everyone, echoing metadata if provided
+  wsx.broadcastJson("presence", {
+    userId: connection.id,
+    status: message.data.status,
+  });
+});
+
+// Target a specific connection with metadata when needed
+// wsx.sendJsonToConnection(connectionId, "presence", { status: "away" }, {
+//   metadata: { expiresAt: Date.now() + 30000 },
+// });
+```
+
+### Client-side JSON channels
+
+```js
+// Listen for presence updates
+wsx.onJson("presence", ({ data, metadata }) => {
+  console.log("Presence change", data, metadata);
+});
+
+// Push a JSON payload to the server
+wsx.sendJson("presence", { status: "online" }, {
+  metadata: { since: Date.now() },
+});
+
+// Observe every JSON message with a catch-all handler
+// wsx.onJson((message) => console.log(message.channel, message.data));
+```
+
+Every JSON payload receives a unique identifier which is returned from `sendJson`, `broadcastJson`, and `sendJsonToConnection`.
+Metadata travels with the payload in both directions so you can attach contextual information without altering the core data
+shape.
 
 ## 📚 Examples
 

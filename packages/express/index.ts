@@ -6,6 +6,7 @@ import {
   WSXServerAdapter,
   WSXConnection,
   WSXServerConfig,
+  WSXBinaryData,
 } from "../core";
 
 export class ExpressAdapter implements WSXServerAdapter {
@@ -20,7 +21,7 @@ export class ExpressAdapter implements WSXServerAdapter {
 
   setupWebSocket(
     path: string,
-    onMessage: (data: string, connection: WSXConnection) => void
+    onMessage: (data: string | WSXBinaryData, connection: WSXConnection) => void
   ): void {
     // Create WebSocket server
     this.wss = new WebSocketServer({ noServer: true });
@@ -32,10 +33,18 @@ export class ExpressAdapter implements WSXServerAdapter {
       const connection: WSXConnection = {
         id: connectionId,
         sessionData: {},
-        send: (data: string) => {
+        send: (data: string | WSXBinaryData) => {
           try {
             if (ws.readyState === WebSocket.OPEN) {
-              ws.send(data);
+              if (typeof data === "string") {
+                ws.send(data);
+              } else if (data instanceof ArrayBuffer) {
+                ws.send(data);
+              } else if (ArrayBuffer.isView(data)) {
+                ws.send(data);
+              } else {
+                ws.send(data as any);
+              }
             }
           } catch (error) {
             console.error("Error sending data:", error);
@@ -50,8 +59,26 @@ export class ExpressAdapter implements WSXServerAdapter {
         },
       };
 
-      ws.on("message", async (data) => {
-        await onMessage(data.toString(), connection);
+      ws.on("message", async (data, isBinary) => {
+        let payload: string | WSXBinaryData;
+
+        if (isBinary) {
+          if (Array.isArray(data)) {
+            payload = Buffer.concat(data);
+          } else {
+            payload = data as WSXBinaryData;
+          }
+        } else {
+          if (typeof data === "string") {
+            payload = data;
+          } else if (Array.isArray(data)) {
+            payload = Buffer.concat(data).toString();
+          } else {
+            payload = (data as Buffer).toString();
+          }
+        }
+
+        await onMessage(payload, connection);
       });
 
       ws.on("close", () => {
