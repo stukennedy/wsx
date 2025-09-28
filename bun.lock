@@ -32,13 +32,25 @@
         "wrangler": "^4.4.0",
       },
     },
+    "examples/transcribe": {
+      "name": "wsx-transcribe-example",
+      "dependencies": {
+        "@wsx-sh/express": "workspace:*",
+        "express": "^4.18.2",
+        "ws": "^8.17.1",
+      },
+      "devDependencies": {
+        "@types/express": "^4.17.21",
+        "@types/ws": "^8.5.10",
+      },
+    },
     "packages/client": {
       "name": "@stukennedy/wsx-client",
-      "version": "1.0.1",
+      "version": "1.0.5",
     },
     "packages/core": {
       "name": "@wsx-sh/core",
-      "version": "1.0.1",
+      "version": "1.0.5",
       "devDependencies": {
         "tsup": "^8.0.0",
         "typescript": "^5.0.0",
@@ -46,9 +58,9 @@
     },
     "packages/express": {
       "name": "@wsx-sh/express",
-      "version": "1.0.1",
+      "version": "1.0.5",
       "dependencies": {
-        "@wsx-sh/core": "workspace:*",
+        "@wsx-sh/core": "^1.0.5",
       },
       "devDependencies": {
         "@types/express": "^4.17.0",
@@ -66,9 +78,9 @@
     },
     "packages/hono": {
       "name": "@wsx-sh/hono",
-      "version": "1.0.1",
+      "version": "1.0.5",
       "dependencies": {
-        "@wsx-sh/core": "workspace:*",
+        "@wsx-sh/core": "^1.0.5",
       },
       "devDependencies": {
         "hono": "^4.8.4",
@@ -626,6 +638,8 @@
     "wsx-express-example": ["wsx-express-example@workspace:examples/express"],
 
     "wsx-hono-example": ["wsx-hono-example@workspace:examples/hono"],
+
+    "wsx-transcribe-example": ["wsx-transcribe-example@workspace:examples/transcribe"],
 
     "youch": ["youch@4.1.0-beta.10", "", { "dependencies": { "@poppinss/colors": "^4.1.5", "@poppinss/dumper": "^0.6.4", "@speed-highlight/core": "^1.2.7", "cookie": "^1.0.2", "youch-core": "^0.3.3" } }, "sha512-rLfVLB4FgQneDr0dv1oddCVZmKjcJ6yX6mS4pU82Mq/Dt9a3cLZQ62pDBL4AUO+uVrCvtWz3ZFUL2HFAFJ/BXQ=="],
 
