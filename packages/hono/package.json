@@ -29,7 +29,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@wsx-sh/core": "workspace:*"
+    "@wsx-sh/core": "^1.0.5"
   },
   "peerDependencies": {
     "hono": ">=4.0.0"
